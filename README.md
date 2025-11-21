@@ -42,7 +42,7 @@ Description from the Istio Documentation:
 >
 > The end-to-end architecture of the application is shown below:
 >
-> ![Bookinfo Architecture](./istio-bookinfo-application-architecture.svg)
+> ![Bookinfo Architecture](https://istio.io/latest/docs/examples/bookinfo/noistio.svg)
 
 copied from [https://istio.io/latest/docs/examples/bookinfo/](https://istio.io/latest/docs/examples/bookinfo/)
 
@@ -255,33 +255,7 @@ These scenarios demonstrate how Bookinfo showcases Konfidence's key features. Ea
 - OCM CLI installed
 - Kubernetes cluster with Konfidence installed
 - kubectl configured
-- Make (for automated workflow)
 
-##### Quick Start with Makefile
-
-The repository includes a Makefile for automated workflows:
-
-```bash
-# Show available commands
-make help
-
-# Build OCM components and vector (creates CTF archives)
-make build-components
-
-# Push components and vector to OCI registry
-make push-components
-
-# Clean build artifacts
-make clean
-
-# Build and push everything (complete workflow)
-make all
-```
-
-**Note:** To use a different registry, set the `REGISTRY` variable:
-```bash
-make push-components REGISTRY=my-registry.example.com/my-project
-```
 
 ##### Manual Setup (Step-by-Step)
 
@@ -339,6 +313,7 @@ ocm transfer ctf ocm-transfer/details konfidence.common.repositories.cloud.sap/e
 ocm transfer ctf ocm-transfer/reviews konfidence.common.repositories.cloud.sap/example-app-tests --overwrite
 ```
 
+> You can also use the `process-and-transfer.sh` script to automate this step.
 
 **What this does:**
 - Creates CTF (Common Transport Format) archives for each component
