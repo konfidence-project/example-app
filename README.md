@@ -250,12 +250,12 @@ These scenarios demonstrate how Bookinfo showcases Konfidence's key features. Ea
 #### Setup
 
 ##### Prerequisites
+
 - Access to OCI registry: `konfidence.common.repositories.cloud.sap`
 - ORAS CLI installed
 - OCM CLI installed
 - Kubernetes cluster with Konfidence installed
 - kubectl configured
-
 
 ##### Manual Setup (Step-by-Step)
 
@@ -316,6 +316,7 @@ ocm transfer ctf ocm-transfer/reviews konfidence.common.repositories.cloud.sap/e
 > You can also use the `process-and-transfer.sh` script to automate this step.
 
 **What this does:**
+
 - Creates CTF (Common Transport Format) archives for each component
 - Packages the `konfidence-manifest` (manifest.json) as an OCM resource
 - Creates references to the kustomization OCI artifacts (from Step 1)
@@ -342,6 +343,7 @@ ocm transfer ctf ocm-transfer/vector-1 konfidence.common.repositories.cloud.sap/
 ```
 
 **What this does:**
+
 - Creates a CTF archive for the vector component
 - Vector references productpage, details, and reviews components
 - Transfers the vector definition to the registry
@@ -399,6 +401,7 @@ kubectl get pods -n bookinfo-dev
 #### Expected Results
 
 **Konfidence Resources Created:**
+
 - 1 Stage: `bookinfo-dev`
 - 1 StageVersion: `stage-version-dev-<unique-id>`
 - 1 VectorDeployment: `github.com.konfidence-project.bookinfo.vector-1-v1.0.0` 
@@ -408,6 +411,7 @@ kubectl get pods -n bookinfo-dev
   - `details-kustomization`
 
 **Flux Resources Created:**
+
 - 3 OciRepositories:
   - `oci://konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/details-v1`
   - `oci://konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/productpage-v1`
@@ -418,6 +422,7 @@ kubectl get pods -n bookinfo-dev
   - `details-kustomization`
 
 **Application Resources Created:**
+
 - Namespace: `bookinfo-dev`
 - 3 Deployments: `productpage-v1`, `details-v1`, `reviews-v1`
 - 3 Services: `productpage`, `details`, `reviews`
