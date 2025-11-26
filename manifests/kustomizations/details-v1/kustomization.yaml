@@ -10,5 +10,5 @@ namespace: bookinfo-dev
 
 images:
   - name: details
-    newName: docker.io/istio/examples-bookinfo-details-v1
-    newTag: "1.20.2"
+    newName: konfidence.common.repositories.cloud.sap/example-app-tests/apps/examples-bookinfo-details-v1
+    newTag: "latest"
