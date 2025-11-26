@@ -10,10 +10,10 @@ components:
       - name: productpage-kustomization
         version: v0.0.2
         relation: external
-        type: ociArtifact
+        type: kustomize
         access:
           type: ociArtifact
-          imageReference: konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/productpage-v1
+          imageReference: konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/productpage-v1:v0.0.2
 
       # Konfidence deployment manifest
       - name: konfidence-manifest
