@@ -20,7 +20,7 @@ Other considerations of the example app:
 
 ## Implementation - Istio Bookinfo Application
 
-Istio uses a bookinfo application, which we also can use as an example for konfidence.
+This repository contains a copy of the Istio Bookinfo application source code, which has been modified to support Konfidence-specific features. The original source code was copied from the Istio project and adapted for use with Konfidence.
 
 
 Description from the Istio Documentation:
@@ -66,7 +66,11 @@ This is the primary user-facing service and the main entry point of the applicat
     *   Returns an HTML webpage to the end-user.
     *   Exposes a `/metrics` endpoint for Prometheus scraping.
 *   **Environment Variables**: Configurable hostnames and ports for downstream services (`DETAILS_HOSTNAME`, `REVIEWS_HOSTNAME`, etc.).
-* **Source Code:** [https://github.com/istio/istio/tree/master/samples/bookinfo/src/productpage](https://github.com/istio/istio/tree/master/samples/bookinfo/src/productpage)
+*   **Vector ID Header Forwarding**: The service forwards the `x-vector-id` header (configurable via `VECTOR_ID_HEADER` environment variable) to downstream services to enable vector-based routing in Konfidence.
+*   **Enhanced Logging**: All incoming request headers are logged to stdout for debugging and verification of header propagation.
+* **Source Code:** 
+    * Original: [https://github.com/istio/istio/tree/master/samples/bookinfo/src/productpage](https://github.com/istio/istio/tree/master/samples/bookinfo/src/productpage)
+    * Modified: [`app-source/productpage/productpage.py`](app-source/productpage/productpage.py) - Added `x-vector-id` header forwarding in `getForwardHeaders()` function (lines 203-206) and enhanced request header logging in `log_request_headers()` function (lines 125-134).
 
 #### Details Service
 
@@ -97,7 +101,12 @@ A microservice that provides book metadata. It can operate in two modes: returni
 *   **Environment Variables**:
     *   `ENABLE_EXTERNAL_BOOK_SERVICE`: If set to `"true"`, the service will call the external Google Books API.
     *   `DO_NOT_ENCRYPT`: If set to `"true"`, the external API call will use HTTP instead of HTTPS.
-* **Source Code**: [https://github.com/istio/istio/tree/master/samples/bookinfo/src/details](https://github.com/istio/istio/tree/master/samples/bookinfo/src/details)  
+    *   `VECTOR_ID_HEADER`: Configurable header name for vector ID forwarding (defaults to `x-vector-id`).
+*   **Vector ID Header Forwarding**: The service forwards the `x-vector-id` header to external services when making outbound requests, enabling vector-based routing in Konfidence.
+*   **Enhanced Logging**: All incoming request headers are logged to stdout for debugging and verification of header propagation.
+* **Source Code**: 
+    * Original: [https://github.com/istio/istio/tree/master/samples/bookinfo/src/details](https://github.com/istio/istio/tree/master/samples/bookinfo/src/details)
+    * Modified: [`app-source/details/details.rb`](app-source/details/details.rb) - Added `x-vector-id` header forwarding in `get_forward_headers()` function (lines 213-215) and enhanced request header logging in `log_request_headers()` function (lines 36-45).  
 
 #### Reviews Service
 
@@ -117,7 +126,12 @@ This service provides book review information and is the primary component for d
     *   `STAR_COLOR`: Sets the color of the rating stars in the JSON response (e.g., `"black"` for `v2`, `"red"` for `v3`). Defaults to `"black"`.
     *   `SERVICES_DOMAIN`, `RATINGS_HOSTNAME`, `RATINGS_SERVICE_PORT`: Configures the downstream `ratings` service URL.
     *   `HOSTNAME`, `CLUSTER_NAME`: Environment variables passed from the Kubernetes Downward API, which are reflected in the service's JSON output for debugging.
-* **Source Code**: [https://github.com/istio/istio/tree/master/samples/bookinfo/src/reviews](https://github.com/istio/istio/tree/master/samples/bookinfo/src/reviews)
+    *   `VECTOR_ID_HEADER`: Configurable header name for vector ID forwarding (defaults to `x-vector-id`).
+*   **Vector ID Header Forwarding**: The service forwards the `x-vector-id` header to the `ratings` service when making outbound requests, enabling vector-based routing in Konfidence.
+*   **Enhanced Logging**: All incoming request headers are logged to stdout via a `RequestHeaderLoggingFilter` for debugging and verification of header propagation.
+* **Source Code**: 
+    * Original: [https://github.com/istio/istio/tree/master/samples/bookinfo/src/reviews](https://github.com/istio/istio/tree/master/samples/bookinfo/src/reviews)
+    * Modified: [`app-source/reviews/reviews-application/src/main/java/application/rest/LibertyRestEndpoint.java`](app-source/reviews/reviews-application/src/main/java/application/rest/LibertyRestEndpoint.java) - Added `x-vector-id` header forwarding in `getRatings()` method (lines 177-181) and enhanced request header logging via `RequestHeaderLoggingFilter` class (lines 40-51).
 
 #### Ratings Service
 
@@ -142,7 +156,10 @@ A backend service providing rating data. This service is highly configurable and
     *   `DB_TYPE`: For `v2`, specifies the database. Can be `mysql` or `mongodb` (default).
     *   `MONGO_DB_URL`: For `v2` with MongoDB, the database connection URL.
     *   `MYSQL_DB_HOST`, `MYSQL_DB_PORT`, `MYSQL_DB_USER`, `MYSQL_DB_PASSWORD`: For `v2` with MySQL.
-* **Source Code**: [https://github.com/istio/istio/tree/master/samples/bookinfo/src/ratings](https://github.com/istio/istio/tree/master/samples/bookinfo/src/ratings)
+*   **Enhanced Logging**: All incoming request headers are logged to stdout for debugging and verification of header propagation.
+* **Source Code**: 
+    * Original: [https://github.com/istio/istio/tree/master/samples/bookinfo/src/ratings](https://github.com/istio/istio/tree/master/samples/bookinfo/src/ratings)
+    * Modified: [`app-source/ratings/ratings.js`](app-source/ratings/ratings.js) - Added enhanced request header logging in `logRequestHeaders()` function (lines 252-262).
 
 
 #### Database Setup
@@ -268,17 +285,17 @@ Push each microservice's kustomization directory as an OCI artifact:
 cd manifests/kustomizations
 
 # Push productpage kustomization
-oras push konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/productpage-v1:v0.0.1 \
+oras push konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/productpage-v1:v0.0.3 \
   ./productpage-v1/ \
   --artifact-type application/vnd.kustomize.config.v1+yaml
 
 # Push details kustomization
-oras push konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/details-v1:v0.0.1 \
+oras push konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/details-v1:v0.0.3 \
   ./details-v1/ \
   --artifact-type application/vnd.kustomize.config.v1+yaml
 
 # Push reviews kustomization
-oras push konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/reviews-v1:v0.0.1 \
+oras push konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/reviews-v1:v0.0.3 \
   ./reviews-v1/ \
   --artifact-type application/vnd.kustomize.config.v1+yaml
 ```
@@ -286,7 +303,7 @@ oras push konfidence.common.repositories.cloud.sap/example-app-tests/kustomizati
 **Verify:**
 ```bash
 oras repo tags konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/productpage-v1
-# Expected: v0.0.1
+# Expected: v0.0.3
 ```
 
 > With the current implementation of OCM, `latest` versions are not supported.
@@ -363,16 +380,21 @@ oras repo ls konfidence.common.repositories.cloud.sap/example-app-tests
 # - kustomizations/reviews-v1
 ```
 
+**Note:** The component versions referenced in the vector are:
+- `github.com/konfidence-project/bookinfo/productpage:v2.0.0`
+- `github.com/konfidence-project/bookinfo/details:v2.0.0`
+- `github.com/konfidence-project/bookinfo/reviews:v2.0.0`
+- Vector version: `github.com/konfidence-project/bookinfo/vector-1:v1.0.1`
+
 ##### Step 4: Deploy Stage to Konfidence
 
-Apply the Stage resource that references the vector:
+The Stage and Namespace resources are managed via GitOps and are located in the [gitops-showroom repository](https://github.com/konfidence-project/gitops-showroom/blob/main/clusters/msp03-kden-showroom/example-app/dev-stage.yaml). The GitOps repository is automatically reconciled inside the showroom cluster, so any changes to the deployment configuration should be made directly in the GitOps repository. The reconciliation process will automatically apply the changes to the cluster.
+
+For manual deployment (if not using GitOps reconciliation), you can apply the Stage resource directly:
 
 ```bash
-# Navigate back to repo root
-cd ../..
-
-# Apply the Stage
-kubectl apply -f examples/dev-stage.yaml
+# Apply the Stage from the GitOps repository (manual deployment)
+kubectl apply -f https://raw.githubusercontent.com/konfidence-project/gitops-showroom/main/clusters/msp03-kden-showroom/example-app/dev-stage.yaml
 ```
 
 **Stage definition:**
@@ -384,7 +406,7 @@ metadata:
   namespace: bookinfo-dev
 spec:
   name: dev
-  vector: "konfidence.common.repositories.cloud.sap/example-app-tests//github.com/konfidence-project/bookinfo/vector-1:v1.0.0"
+  vector: "konfidence.common.repositories.cloud.sap/example-app-tests//github.com/konfidence-project/bookinfo/vector-1:v1.0.1"
 ```
 
 **Monitor deployment:**
@@ -404,7 +426,7 @@ kubectl get pods -n bookinfo-dev
 
 - 1 Stage: `bookinfo-dev`
 - 1 StageVersion: `stage-version-dev-<unique-id>`
-- 1 VectorDeployment: `github.com.konfidence-project.bookinfo.vector-1-v1.0.0` 
+- 1 VectorDeployment: `github.com.konfidence-project.bookinfo.vector-1-v1.0.1` 
 - 3 ArtifactDeployments referencing:
   - `reviews-kustomization`
   - `productpage-kustomization` 
@@ -451,7 +473,7 @@ kubectl get pods -n bookinfo-dev
 
 - Everything from Scenario 1 +
 - **Artifact / Vector Reuse**: Vectors reference shared artifacts (productpage, details, rating, db)
-- forwarding of vector headers (?)
+- **Vector Header Forwarding**: The `x-vector-id` header is automatically forwarded between services, enabling proper vector-based routing across the service mesh
 
 
 ### Scenario 3: Vector Migration with Database

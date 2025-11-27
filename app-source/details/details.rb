@@ -33,13 +33,34 @@ server = WEBrick::HTTPServer.new(
 
 trap 'INT' do server.shutdown end
 
+def log_request_headers(req)
+  $stdout.puts "Incoming request: #{req.request_method} #{req.path}"
+  $stdout.puts "Incoming request headers:"
+  $stdout.flush
+  # Log all headers exactly as received by the server
+  req.each do |header, value|
+    $stdout.puts "  #{header}: #{value}"
+    $stdout.flush
+  end
+end
+
 server.mount_proc '/health' do |req, res|
+    log_request_headers(req)
     res.status = 200
     res.body = {'status' => 'Details is healthy'}.to_json
     res['Content-Type'] = 'application/json'
 end
 
 server.mount_proc '/details' do |req, res|
+    log_request_headers(req)
+    pathParts = req.path.split('/')
+    res.status = 200
+    res.body = {'status' => 'Details is healthy'}.to_json
+    res['Content-Type'] = 'application/json'
+end
+
+server.mount_proc '/details' do |req, res|
+    log_request_headers(req)
     pathParts = req.path.split('/')
     headers = get_forward_headers(req)
 
@@ -188,6 +209,10 @@ def get_forward_headers(request)
       'authorization',
       'jwt'
   ]
+
+  # Vector ID header for routing (configurable via VECTOR_ID_HEADER env var)
+  vector_id_header = ENV['VECTOR_ID_HEADER'] || 'x-vector-id'
+  incoming_headers << vector_id_header
 
   request.each do |header, value|
     if incoming_headers.include? header then

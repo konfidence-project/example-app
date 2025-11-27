@@ -249,8 +249,21 @@ function getLocalReviews (productId) {
   }
 }
 
+function logRequestHeaders(request) {
+  console.log('Incoming request: ' + request.method + ' ' + request.url)
+  console.log('Incoming request headers:')
+  // Log all headers exactly as received by the server
+  var headers = request.headers
+  for (var headerName in headers) {
+    if (headers.hasOwnProperty(headerName)) {
+      console.log('  ' + headerName + ': ' + headers[headerName])
+    }
+  }
+}
+
 function handleRequest (request, response) {
   try {
+    logRequestHeaders(request)
     console.log(request.method + ' ' + request.url)
     dispatcher.dispatch(request, response)
   } catch (err) {

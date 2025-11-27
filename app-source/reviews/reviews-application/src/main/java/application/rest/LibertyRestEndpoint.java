@@ -31,7 +31,24 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.container.ContainerRequestContext;
+import javax.ws.rs.container.ContainerRequestFilter;
+import javax.ws.rs.ext.Provider;
+import java.io.IOException;
 import java.io.StringReader;
+
+@Provider
+class RequestHeaderLoggingFilter implements ContainerRequestFilter {
+    @Override
+    public void filter(ContainerRequestContext requestContext) throws IOException {
+        System.out.println("Incoming request: " + requestContext.getMethod() + " " + requestContext.getUriInfo().getPath());
+        System.out.println("Incoming request headers:");
+        // Log all headers exactly as received by the server
+        for (String headerName : requestContext.getHeaders().keySet()) {
+            System.out.println("  " + headerName + ": " + requestContext.getHeaderString(headerName));
+        }
+    }
+}
 
 @Path("/")
 public class LibertyRestEndpoint extends Application {
@@ -44,6 +61,7 @@ public class LibertyRestEndpoint extends Application {
     private final static String ratings_service = String.format("http://%s%s:%s/ratings", ratings_hostname, services_domain, ratings_port);
     private final static String pod_hostname = System.getenv("HOSTNAME");
     private final static String clustername = System.getenv("CLUSTER_NAME");
+    private final static String vector_id_header = System.getenv("VECTOR_ID_HEADER") == null ? "x-vector-id" : System.getenv("VECTOR_ID_HEADER");
     // HTTP headers to propagate for distributed tracing are documented at
     // https://istio.io/docs/tasks/telemetry/distributed-tracing/overview/#trace-context-propagation
     private final static String[] headers_to_propagate = {
@@ -155,6 +173,11 @@ public class LibertyRestEndpoint extends Application {
         if (value != null) {
           builder.header(header,value);
         }
+      }
+      // Vector ID header for routing (configurable via VECTOR_ID_HEADER env var)
+      String vectorIdValue = requestHeaders.getHeaderString(vector_id_header);
+      if (vectorIdValue != null) {
+        builder.header(vector_id_header, vectorIdValue);
       }
       try {
         Response r = builder.get();

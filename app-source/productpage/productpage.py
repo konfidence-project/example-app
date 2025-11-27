@@ -122,6 +122,18 @@ trace.set_tracer_provider(provider)
 tracer = trace.get_tracer(__name__)
 
 
+@app.before_request
+def log_request_headers():
+    """Log all incoming request headers"""
+    app.logger.info(f"Incoming request: {request.method} {request.path}")
+    app.logger.info("Incoming request headers:")
+    sys.stdout.flush()
+    # Log all headers exactly as received by the server
+    for header_name, header_value in request.headers:
+        app.logger.info(f"  {header_name}: {header_value}")
+    sys.stdout.flush()
+
+
 def getForwardHeaders(request):
     headers = {}
 
@@ -187,6 +199,12 @@ def getForwardHeaders(request):
         'authorization',
         'jwt',
     ]
+    
+    # Vector ID header for routing (configurable via VECTOR_ID_HEADER env var)
+    vector_id_header = os.environ.get("VECTOR_ID_HEADER", "x-vector-id")
+    if vector_id_header:
+        incoming_headers.append(vector_id_header)
+    
     # For Zipkin, always propagate b3 headers.
     # For Lightstep, always propagate the x-ot-span-context header.
     # For Datadog, propagate the corresponding datadog headers.

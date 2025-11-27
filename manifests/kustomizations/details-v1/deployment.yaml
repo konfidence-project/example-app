@@ -19,8 +19,10 @@ spec:
     spec:
       serviceAccountName: bookinfo-details
       containers:
-      - name: details
-        image: details
-        imagePullPolicy: IfNotPresent
-        ports:
-        - containerPort: 9080
+        - name: details
+          image: details
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 9080
+      imagePullSecrets:
+        - name: konfidence-common-repositories-cloud-sap

@@ -1,19 +1,19 @@
 # yaml-language-server: $schema=https://ocm.software/schemas/configuration-schema.yaml
 components:
   - name: github.com/konfidence-project/bookinfo/productpage
-    version: v1.20.2
+    version: v2.0.0
     provider:
       name: konfidence-project
     sources: []
     resources:
       # Kustomization artifact (OCI reference)
       - name: productpage-kustomization
-        version: v0.0.2
+        version: v0.0.3
         relation: external
         type: kustomize
         access:
           type: ociArtifact
-          imageReference: konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/productpage-v1:v0.0.2
+          imageReference: konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/productpage-v1:v0.0.3
 
       # Konfidence deployment manifest
       - name: konfidence-manifest
