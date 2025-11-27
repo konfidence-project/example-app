@@ -3,7 +3,7 @@
 set -e
 
 # Configuration
-COMPONENTS=("details-v1" "productpage-v1" "reviews-v1")
+COMPONENTS=("details-v1" "productpage-v1" "reviews-v1" "reviews-v2")
 TRANSFER_DIR="./ocm-transfer"
 COMPONENTS_DIR="./components"
 REMOTE_REPO="https://konfidence.common.repositories.cloud.sap/example-app-tests"

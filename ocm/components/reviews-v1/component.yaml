@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://ocm.software/schemas/configuration-schema.yaml
 components:
   - name: github.com/konfidence-project/bookinfo/reviews
-    version: v2.0.0
+    version: v1
     provider:
       name: konfidence-project
     sources: []
