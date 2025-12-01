@@ -11,10 +11,10 @@ components:
     componentReferences:
       - componentName: github.com/konfidence-project/bookinfo/productpage
         name: productpage
-        version: v2
+        version: v1
       - componentName: github.com/konfidence-project/bookinfo/details
         name: details
-        version: v2
+        version: v1
       - componentName: github.com/konfidence-project/bookinfo/reviews
         name: reviews
         version: v2
