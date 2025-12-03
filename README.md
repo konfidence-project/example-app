@@ -275,35 +275,35 @@ These scenarios demonstrate how Bookinfo showcases Konfidence's key features. Ea
 ##### Prerequisites
 
 - Access to OCI registry: `konfidence.common.repositories.cloud.sap`
-- ORAS CLI installed
-- OCM CLI installed
+- [ORAS CLI](https://oras.land/docs/installation) installed
+- [OCM CLI](https://ocm.software/docs/getting-started/installation/) installed
 - Kubernetes cluster with Konfidence installed
 - kubectl configured
 
 ##### Manual Setup (Step-by-Step)
 
-##### Step 1: Build and Push Scenario 1 Components
+##### Step 1: Push Kustomizations to OCI Registry
 
-Use the scenario-specific build script to push kustomizations, build OCM components, and push the vector:
+Push each microservice's kustomization directory as an OCI artifact:
 
 ```bash
 # Navigate to scenario-1 directory
 cd scenario-1
 
-# Run the build script
-./build.sh
+# Push kustomizations
+cd manifests/kustomizations
+oras push konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/productpage-v1:v0.0.3 \
+  ./productpage-v1/ \
+  --artifact-type application/vnd.kustomize.config.v1+yaml
+
+oras push konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/details-v1:v0.0.3 \
+  ./details-v1/ \
+  --artifact-type application/vnd.kustomize.config.v1+yaml
+
+oras push konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/reviews-v1:v0.0.3 \
+  ./reviews-v1/ \
+  --artifact-type application/vnd.kustomize.config.v1+yaml
 ```
-
-**What the build script does:**
-
-1. **Pushes Kustomizations to OCI Registry**: Pushes each microservice's kustomization directory as an OCI artifact:
-   - `productpage-v1:v0.0.3`
-   - `details-v1:v0.0.3`
-   - `reviews-v1:v0.0.3`
-
-2. **Builds and Pushes OCM Components**: Creates CTF archives for each component and transfers them to the registry
-
-3. **Builds and Pushes Vector**: Creates CTF archive for vector-1 and transfers it to the registry
 
 **Verify:**
 ```bash
@@ -313,39 +313,26 @@ oras repo tags konfidence.common.repositories.cloud.sap/example-app-tests/kustom
 
 > With the current implementation of OCM, `latest` versions are not supported.
 
-**Manual Steps (Alternative to build script):**
+##### Step 2: Build and Push OCM Components
 
-If you prefer to run the steps manually:
+Build and push OCM components that reference the kustomizations:
 
 ```bash
-# Navigate to scenario-1 directory
-cd scenario-1
-
-# Step 1: Push kustomizations
-cd manifests/kustomizations
-oras push konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/productpage-v1:v0.0.3 \
-  ./productpage-v1/ \
-  --artifact-type application/vnd.kustomize.config.v1+yaml
-oras push konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/details-v1:v0.0.3 \
-  ./details-v1/ \
-  --artifact-type application/vnd.kustomize.config.v1+yaml
-oras push konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/reviews-v1:v0.0.3 \
-  ./reviews-v1/ \
-  --artifact-type application/vnd.kustomize.config.v1+yaml
-
-# Step 2: Build and push OCM components
+# Navigate to OCM components directory
 cd ../../ocm
+
+# Create temporary transfer directory
 mkdir -p ocm-transfer
+
+# Add productpage, details and reviews components to CTF
 ocm add componentversions --create --file ocm-transfer/productpage components/productpage-v1/component.yaml
 ocm add componentversions --create --file ocm-transfer/details components/details-v1/component.yaml
 ocm add componentversions --create --file ocm-transfer/reviews components/reviews-v1/component.yaml
+
+# Transfer all components to registry
 ocm transfer ctf ocm-transfer/productpage konfidence.common.repositories.cloud.sap/example-app-tests --overwrite
 ocm transfer ctf ocm-transfer/details konfidence.common.repositories.cloud.sap/example-app-tests --overwrite
 ocm transfer ctf ocm-transfer/reviews konfidence.common.repositories.cloud.sap/example-app-tests --overwrite
-
-# Step 3: Build and push vector
-ocm add componentversions --create --file ocm-transfer/vector-1 vectors/vector-1/component.yaml
-ocm transfer ctf ocm-transfer/vector-1 konfidence.common.repositories.cloud.sap/example-app-tests --overwrite
 ```
 
 **What this does:**
@@ -355,19 +342,25 @@ ocm transfer ctf ocm-transfer/vector-1 konfidence.common.repositories.cloud.sap/
 - Creates references to the kustomization OCI artifacts (from Step 1)
 - Transfers CTF archives to the registry with `--overwrite` for easy re-deployment
 
-> Documentation on creating and storing component versions can be found (here)[https://ocm.software/docs/getting-started/create-component-version/#add-component-version-to-ctf-archive] 
+> Documentation on creating and storing component versions can be found (here)[https://ocm.software/docs/getting-started/create-component-version/#add-component-version-to-ctf-archive]
 
-**What the build script does:**
+##### Step 3: Build and Push OCM Vector
 
-- Creates CTF (Common Transport Format) archives for each component
-- Packages the `konfidence-manifest` (manifest.json) as an OCM resource
-- Creates references to the kustomization OCI artifacts
-- Transfers CTF archives to the registry with `--overwrite` for easy re-deployment
+Build and push the vector that composes the three service components:
+
+```bash
+# Add vector to CTF
+ocm add componentversions --create --file ocm-transfer/vector-1 vectors/vector-1/component.yaml
+
+# Transfer vector to registry
+ocm transfer ctf ocm-transfer/vector-1 konfidence.common.repositories.cloud.sap/example-app-tests --overwrite
+```
+
+**What this does:**
+
 - Creates a CTF archive for the vector component
 - Vector references productpage, details, and reviews components
 - Transfers the vector definition to the registry
-
-> Documentation on creating and storing component versions can be found (here)[https://ocm.software/docs/getting-started/create-component-version/#add-component-version-to-ctf-archive]
 
 **Verify:**
 ```bash
@@ -389,6 +382,17 @@ oras repo ls konfidence.common.repositories.cloud.sap/example-app-tests
 - `github.com/konfidence-project/bookinfo/details:v1`
 - `github.com/konfidence-project/bookinfo/reviews:v1`
 - Vector version: `github.com/konfidence-project/bookinfo/vector-1:v1.0.2`
+
+**Quick Alternative: Using the Build Script**
+
+Instead of running the manual steps above, you can use the provided build script:
+
+```bash
+cd scenario-1
+./build-and-transfer-ocm.sh
+```
+
+> **Note:** The build script only handles Steps 2 and 3 (OCM components and vector). You still need to push kustomizations manually (Step 1) before running the script.
 
 ##### Step 4: Deploy Stage to Konfidence
 
@@ -485,25 +489,20 @@ kubectl get pods -n bookinfo-dev
 
 ##### Manual Setup (Step-by-Step)
 
-##### Step 1: Build and Push Scenario 2 Components
+##### Step 1: Push Reviews-v2 Kustomization to OCI Registry
 
-Use the scenario-specific build script to push kustomizations, build OCM components, and push the vector:
+Push the reviews-v2 kustomization directory as an OCI artifact:
 
 ```bash
 # Navigate to scenario-2 directory
 cd scenario-2
 
-# Run the build script
-./build.sh
+# Push reviews-v2 kustomization
+cd manifests/kustomizations
+oras push konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/reviews-v2:v0.0.1 \
+  ./reviews-v2/ \
+  --artifact-type application/vnd.kustomize.config.v1+yaml
 ```
-
-**What the build script does:**
-
-1. **Pushes Reviews-v2 Kustomization to OCI Registry**: Pushes the reviews-v2 kustomization directory as an OCI artifact (`reviews-v2:v0.0.1`)
-
-2. **Builds and Pushes Reviews-v2 OCM Component**: Creates CTF archive for reviews-v2 component and transfers it to the registry
-
-3. **Builds and Pushes Vector-2**: Creates CTF archive for vector-2 and transfers it to the registry
 
 **Verify:**
 ```bash
@@ -511,28 +510,40 @@ oras repo tags konfidence.common.repositories.cloud.sap/example-app-tests/kustom
 # Expected: v0.0.1
 ```
 
-**Manual Steps (Alternative to build script):**
+##### Step 2: Build and Push Reviews-v2 OCM Component
 
-If you prefer to run the steps manually:
+Build and push the reviews-v2 OCM component that references the kustomization:
 
 ```bash
-# Navigate to scenario-2 directory
-cd scenario-2
-
-# Step 1: Push reviews-v2 kustomization
-cd manifests/kustomizations
-oras push konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/reviews-v2:v0.0.1 \
-  ./reviews-v2/ \
-  --artifact-type application/vnd.kustomize.config.v1+yaml
-
-# Step 2: Build and push reviews-v2 OCM component
+# Navigate to OCM components directory
 cd ../../ocm
-mkdir -p ocm-transfer
-ocm add componentversions --create --file ocm-transfer/reviews-v2 components/reviews-v2/component.yaml
-ocm transfer ctf ocm-transfer/reviews-v2 konfidence.common.repositories.cloud.sap/example-app-tests --overwrite
 
-# Step 3: Build and push vector-2
+# Create temporary transfer directory
+mkdir -p ocm-transfer
+
+# Add reviews-v2 component to CTF
+ocm add componentversions --create --file ocm-transfer/reviews-v2 components/reviews-v2/component.yaml
+
+# Transfer component to registry
+ocm transfer ctf ocm-transfer/reviews-v2 konfidence.common.repositories.cloud.sap/example-app-tests --overwrite
+```
+
+**What this does:**
+
+- Creates a CTF archive for the reviews-v2 component
+- Packages the `konfidence-manifest` (manifest.json) as an OCM resource
+- Creates a reference to the reviews-v2 kustomization OCI artifact
+- Transfers the CTF archive to the registry
+
+##### Step 3: Build and Push OCM Vector 2
+
+Build and push vector-2 that composes productpage, details, and reviews-v2 components:
+
+```bash
+# Add vector-2 to CTF
 ocm add componentversions --create --file ocm-transfer/vector-2 vectors/vector-2/component.yaml
+
+# Transfer vector to registry
 ocm transfer ctf ocm-transfer/vector-2 konfidence.common.repositories.cloud.sap/example-app-tests --overwrite
 ```
 
@@ -567,6 +578,17 @@ oras repo ls konfidence.common.repositories.cloud.sap/example-app-tests
 - `github.com/konfidence-project/bookinfo/details:v1` (shared with vector-1)
 - `github.com/konfidence-project/bookinfo/reviews:v2` (different from vector-1)
 - Vector version: `github.com/konfidence-project/bookinfo/vector-2:v1.0.0`
+
+**Quick Alternative: Using the Build Script**
+
+Instead of running the manual steps above, you can use the provided build script:
+
+```bash
+cd scenario-2
+./build-and-transfer-ocm.sh
+```
+
+> **Note:** The build script only handles Steps 2 and 3 (OCM component and vector). You still need to push the kustomization manually (Step 1) before running the script.
 
 ##### Step 4: Deploy Second Stage to Konfidence
 
@@ -679,27 +701,26 @@ kubectl get pods -n bookinfo-dev
 - Kubernetes cluster with Konfidence installed
 - kubectl configured
 
-##### Step 1: Build and Push Scenario 3 Components
+##### Manual Setup
 
-Use the scenario-specific build script to push kustomizations, build OCM components (including task manifests), and push the vector:
+##### Step 1: Push Kustomizations to OCI Registry
+
+Push each kustomization directory as an OCI artifact:
 
 ```bash
 # Navigate to scenario-3 directory
 cd scenario-3
 
-# Run the build script
-./build.sh
+# Push kustomizations
+cd manifests/kustomizations
+oras push konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/mysqldb-v1:v0.0.1 \
+  ./mysqldb-v1/ \
+  --artifact-type application/vnd.kustomize.config.v1+yaml
+
+oras push konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/ratings-v2-mysql:v0.0.1 \
+  ./ratings-v2-mysql/ \
+  --artifact-type application/vnd.kustomize.config.v1+yaml
 ```
-
-**What the build script does:**
-
-1. **Pushes Kustomizations to OCI Registry**: Pushes each kustomization directory as an OCI artifact:
-   - `mysqldb-v1:v0.0.1`
-   - `ratings-v2-mysql:v0.0.1`
-
-2. **Builds and Pushes OCM Components**: Creates CTF archives for each component (including task manifests) and transfers them to the registry
-
-3. **Builds and Pushes Vector-3**: Creates CTF archive for vector-3 and transfers it to the registry
 
 **Verify:**
 ```bash
@@ -707,7 +728,90 @@ oras repo tags konfidence.common.repositories.cloud.sap/example-app-tests/kustom
 # Expected: v0.0.1
 ```
 
-##### Step 2: Deploy Stage to Konfidence
+##### Step 2: Build and Push OCM Components
+
+Build and push OCM components that reference the kustomizations. The ratings-v2-mysql component includes task manifests for database migrations:
+
+```bash
+# Navigate to OCM components directory
+cd ../../ocm
+
+# Create temporary transfer directory
+mkdir -p ocm-transfer
+
+# Add mysqldb-v1 and ratings-v2-mysql components to CTF
+ocm add componentversions --create --file ocm-transfer/mysqldb-v1 components/mysqldb-v1/component.yaml
+ocm add componentversions --create --file ocm-transfer/ratings-v2-mysql components/ratings-v2-mysql/component.yaml
+
+# Transfer all components to registry
+ocm transfer ctf ocm-transfer/mysqldb-v1 konfidence.common.repositories.cloud.sap/example-app-tests --overwrite
+ocm transfer ctf ocm-transfer/ratings-v2-mysql konfidence.common.repositories.cloud.sap/example-app-tests --overwrite
+```
+
+**What this does:**
+
+- Creates CTF archives for each component
+- Packages the `konfidence-manifest` (manifest.json) as an OCM resource
+- Packages task manifests (for ratings-v2-mysql) as OCM resources
+- Creates references to the kustomization OCI artifacts (from Step 1)
+- Transfers CTF archives to the registry with `--overwrite` for easy re-deployment
+
+##### Step 3: Build and Push OCM Vector 3
+
+Build and push vector-3 that composes all required components:
+
+```bash
+# Add vector-3 to CTF
+ocm add componentversions --create --file ocm-transfer/vector-3 vectors/vector-3/component.yaml
+
+# Transfer vector to registry
+ocm transfer ctf ocm-transfer/vector-3 konfidence.common.repositories.cloud.sap/example-app-tests --overwrite
+```
+
+**What this does:**
+
+- Creates a CTF archive for the vector-3 component
+- Vector-3 references:
+  - `productpage:v1` (from scenario-1)
+  - `details:v1` (from scenario-1)
+  - `reviews:v2` (from scenario-2)
+  - `mysqldb:v1` (new)
+  - `ratings:v2-mysql` (new, with migration tasks)
+- Transfers the vector definition to the registry
+
+**Verify:**
+```bash
+# Check all artifacts are in registry
+oras repo ls konfidence.common.repositories.cloud.sap/example-app-tests
+
+# Expected output should include:
+# - component-descriptors/github.com/konfidence-project/bookinfo/mysqldb
+# - component-descriptors/github.com/konfidence-project/bookinfo/ratings
+# - component-descriptors/github.com/konfidence-project/bookinfo/vector-3
+# - kustomizations/mysqldb-v1
+# - kustomizations/ratings-v2-mysql
+```
+
+**Note:** The component versions referenced in vector-3 are:
+- `github.com/konfidence-project/bookinfo/productpage:v1` (from scenario-1)
+- `github.com/konfidence-project/bookinfo/details:v1` (from scenario-1)
+- `github.com/konfidence-project/bookinfo/reviews:v2` (from scenario-2)
+- `github.com/konfidence-project/bookinfo/mysqldb:v1` (new)
+- `github.com/konfidence-project/bookinfo/ratings:v2-mysql` (new, with migration tasks)
+- Vector version: `github.com/konfidence-project/bookinfo/vector-3:v1.0.0`
+
+**Quick Alternative: Using the Build Script**
+
+Instead of running the manual steps above, you can use the provided build script:
+
+```bash
+cd scenario-3
+./build-and-transfer-ocm.sh
+```
+
+> **Note:** The build script only handles Steps 2 and 3 (OCM components and vector). You still need to push kustomizations manually (Step 1) before running the script.
+
+##### Step 4: Deploy Stage to Konfidence
 
 The Stage resource should be created in the GitOps repository or applied manually:
 
@@ -733,9 +837,18 @@ kubectl get stageversions -n bookinfo-dev
 kubectl get vectordeployments -n bookinfo-dev
 kubectl get artifactdeployments -n bookinfo-dev
 kubectl get vectormigrations -n bookinfo-dev
+
+# Watch task executions (may be empty if tasks completed and were cleaned up)
 kubectl get taskexecutions -n bookinfo-dev
+
+# Watch Kubernetes Jobs created by task executions
+kubectl get jobs -n bookinfo-dev
+
 # Watch application pods
 kubectl get pods -n bookinfo-dev
+
+# Check VectorMigration status
+kubectl get vectormigration stage-version-dev-3-<unique-id>-migration -n bookinfo-dev -o yaml
 ```
 
 #### Expected Results
@@ -743,49 +856,75 @@ kubectl get pods -n bookinfo-dev
 **Konfidence Resources Created:**
 
 - 1 Stage: `dev-3` (in namespace `bookinfo-dev`)
-- 1 StageVersion: `stage-version-dev-3-<unique-id>`
+- 1 StageVersion: `stage-version-dev-3-<unique-id>` (e.g., `stage-version-dev-3-87ggcfbq`)
 - 1 VectorDeployment: `github.com.konfidence-project.bookinfo.vector-3-v1.0.0`
-- 5 ArtifactDeployments:
-  - `productpage-kustomization` (reused from scenario-1)
-  - `details-kustomization` (reused from scenario-1)
-  - `reviews-kustomization` (reused from scenario-2)
-  - `mysqldb-kustomization` (new)
-  - `ratings-v2-mysql-kustomization` (new, with migration tasks)
-- 1 VectorMigration: Created after all artifacts are deployed
-- 3 TaskExecutions:
-  - `verify-mysql-ready` - Verifies MySQL is accessible
-  - `run-schema-migration` - Adds `created_at` column to ratings table
-  - `verify-migration` - Verifies the migration was successful
+- 6 ArtifactDeployments (named by hash):
+  - ArtifactDeployments for all components referenced by vector-3:
+    - `productpage-kustomization-<hash>` (reused from scenario-1)
+    - `details-kustomization-<hash>` (reused from scenario-1)
+    - `reviews-kustomization-<hash>` (reused from scenario-2, reviews-v1)
+    - `reviews-kustomization-<hash>` (reused from scenario-2, reviews-v2)
+    - `mysqldb-kustomization-<hash>` (new)
+    - `ratings-v2-mysql-kustomization-<hash>` (new, with migration tasks)
+- 1 VectorMigration: `stage-version-dev-3-<unique-id>-migration` (created after all artifacts are deployed, status: `VectorMigrationSucceeded`)
+- TaskExecutions: Created during the migration phase (may not be visible if tasks completed and were cleaned up):
+  - `test-task` - Simple logging task to verify task orchestration is working (currently enabled for initial testing)
+  - `verify-mysql-ready` - Verifies MySQL is accessible (disabled for initial testing)
+  - `run-schema-migration` - Adds `created_at` column to ratings table (disabled for initial testing)
+  - `verify-migration` - Verifies the migration was successful (disabled for initial testing)
 
 **Flux Resources Created:**
 
-- 2 new OciRepositories:
-  - `oci://konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/mysqldb-v1`
-  - `oci://konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/ratings-v2-mysql`
-- 2 new Kustomizations:
-  - `mysqldb-kustomization-<hash>`
-  - `ratings-v2-mysql-kustomization-<hash>`
+- 6 OciRepositories (all scenarios combined):
+  - `oci://konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/details-v1`
+  - `oci://konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/productpage-v1`
+  - `oci://konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/reviews-v1`
+  - `oci://konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/reviews-v2`
+  - `oci://konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/mysqldb-v1` (new)
+  - `oci://konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/ratings-v2-mysql` (new)
+- 6 Kustomizations (named by hash):
+  - `details-kustomization-<hash>`
+  - `productpage-kustomization-<hash>`
+  - `reviews-kustomization-<hash>` (reviews-v1)
+  - `reviews-kustomization-<hash>` (reviews-v2)
+  - `mysqldb-kustomization-<hash>` (new)
+  - `ratings-v2-mysql-kustomization-<hash>` (new)
 
 **Application Resources Created:**
 
-- 2 new Deployments:
-  - `mysqldb-v1-<hash>`
-  - `ratings-v2-mysql-<hash>`
-- 2 new Services:
-  - `mysqldb-<hash>`
-  - `ratings-<hash>`
-- 1 new ConfigMap:
+- 6 Deployments (all scenarios combined):
+  - `productpage-v1-<hash>`
+  - `details-v1-<hash>`
+  - `reviews-v1-<hash>`
+  - `reviews-v2-<hash>`
+  - `mysqldb-v1-<hash>` (new)
+  - `ratings-v2-mysql-<hash>` (new)
+- 6 Services (all scenarios combined):
+  - `productpage-<hash>`
+  - `details-<hash>`
+  - `reviews-<hash>` (reviews-v1)
+  - `reviews-<hash>` (reviews-v2)
+  - `mysqldb-<hash>` (new)
+  - `ratings-<hash>` (new)
+- 1 ConfigMap (new):
   - `mysql-init-script-<hash>` (contains database initialization SQL)
 
 **Migration Tasks:**
 
-The migration tasks run in the following order:
+Currently, only the `test-task` is enabled for initial testing. The migration tasks are defined but disabled in the component manifest. To enable the full migration workflow, uncomment the task manifests in `scenario-3/ocm/components/ratings-v2-mysql/component.yaml`.
+
+**Test Task (Currently Enabled):**
+- `test-task` - Simple logging task that prints messages and sleeps for 30 seconds to verify task orchestration is working
+
+**Migration Tasks (Disabled for Initial Testing):**
+
+The migration tasks will run in the following order when enabled:
 
 1. **verify-mysql-ready**: Uses `mysqladmin ping` to verify MySQL is accessible
 2. **run-schema-migration**: Executes SQL to add `created_at` column (idempotent - checks if column exists first)
 3. **verify-migration**: Verifies the `created_at` column exists in the database
 
-#### Migration Details
+**Migration Details:**
 
 **Base Schema** (from MySQL init script):
 ```sql
@@ -802,14 +941,11 @@ ALTER TABLE test.ratings
 ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 ```
 
-**Idempotency**: The migration task checks if the column exists before adding it, making it safe to re-run.
-
 #### Key Konfidence Concepts Demonstrated
 
 - Everything from Scenario 1 + 2
 - **Task Orchestration**: Migration tasks are defined in the OCM component and executed automatically during the migration phase
 - **Task Dependencies**: Tasks have explicit dependencies (`dependsOn`) ensuring correct execution order
-- **Idempotent Migrations**: Migration tasks are designed to be safe to re-run
 - **Database Migration Pattern**: Demonstrates a real-world pattern for schema migrations using Kubernetes Jobs
 - **Component Reuse**: Vector-3 reuses components from scenario-1 (productpage, details) and scenario-2 (reviews)
 - **Multi-Phase Deployment**: Deployment → Migration → Activation workflow
