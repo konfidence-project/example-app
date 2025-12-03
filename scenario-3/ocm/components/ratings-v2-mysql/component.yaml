@@ -23,75 +23,56 @@ components:
           type: file
           path: ./manifest.json
 
-      # Task manifest: test-task (simple logging task for initial testing)
-      - name: test-task-manifest
+      # Task manifest: verify-mysql-ready
+      - name: verify-mysql-ready-manifest
         version: v0.0.1
         relation: local
         type: cloud.konfidence.artifact.task.manifest
         input:
           type: file
-          path: ./task-manifests/test-task/task-manifest.json
+          path: ./task-manifests/verify-mysql-ready/task-manifest.json
 
-      # Task container image: test-task
-      - name: test-task-image
+      # Task container image: verify-mysql-ready
+      - name: verify-mysql-ready-image
         version: v0.0.1
         relation: external
         type: ociImage
         access:
           type: ociArtifact
-          imageReference: alpine:3.22.1
+          imageReference: mysql:8.0
 
-      # # Task manifest: verify-mysql-ready (disabled for initial testing)
-      # - name: verify-mysql-ready-manifest
-      #   version: v0.0.1
-      #   relation: local
-      #   type: cloud.konfidence.artifact.task.manifest
-      #   input:
-      #     type: file
-      #     path: ./task-manifests/verify-mysql-ready/task-manifest.json
+      # Task manifest: run-schema-migration
+      - name: run-schema-migration-manifest
+        version: v0.0.1
+        relation: local
+        type: cloud.konfidence.artifact.task.manifest
+        input:
+          type: file
+          path: ./task-manifests/run-schema-migration/task-manifest.json
 
-      # # Task container image: verify-mysql-ready
-      # - name: verify-mysql-ready-image
-      #   version: v0.0.1
-      #   relation: external
-      #   type: ociImage
-      #   access:
-      #     type: ociArtifact
-      #     imageReference: mysql:8.0
+      # Task container image: run-schema-migration
+      - name: run-schema-migration-image
+        version: v0.0.1
+        relation: external
+        type: ociImage
+        access:
+          type: ociArtifact
+          imageReference: mysql:8.0
 
-      # # Task manifest: run-schema-migration (disabled for initial testing)
-      # - name: run-schema-migration-manifest
-      #   version: v0.0.1
-      #   relation: local
-      #   type: cloud.konfidence.artifact.task.manifest
-      #   input:
-      #     type: file
-      #     path: ./task-manifests/run-schema-migration/task-manifest.json
+      # Task manifest: verify-migration
+      - name: verify-migration-manifest
+        version: v0.0.1
+        relation: local
+        type: cloud.konfidence.artifact.task.manifest
+        input:
+          type: file
+          path: ./task-manifests/verify-migration/task-manifest.json
 
-      # # Task container image: run-schema-migration
-      # - name: run-schema-migration-image
-      #   version: v0.0.1
-      #   relation: external
-      #   type: ociImage
-      #   access:
-      #     type: ociArtifact
-      #     imageReference: mysql:8.0
-
-      # # Task manifest: verify-migration (disabled for initial testing)
-      # - name: verify-migration-manifest
-      #   version: v0.0.1
-      #   relation: local
-      #   type: cloud.konfidence.artifact.task.manifest
-      #   input:
-      #     type: file
-      #     path: ./task-manifests/verify-migration/task-manifest.json
-
-      # # Task container image: verify-migration
-      # - name: verify-migration-image
-      #   version: v0.0.1
-      #   relation: external
-      #   type: ociImage
-      #   access:
-      #     type: ociArtifact
-      #     imageReference: mysql:8.0
-
+      # Task container image: verify-migration
+      - name: verify-migration-image
+        version: v0.0.1
+        relation: external
+        type: ociImage
+        access:
+          type: ociArtifact
+          imageReference: mysql:8.0

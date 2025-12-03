@@ -18,9 +18,6 @@ components:
       - componentName: github.com/konfidence-project/bookinfo/reviews
         name: reviews
         version: v2
-      - componentName: github.com/konfidence-project/bookinfo/mysqldb
-        name: mysqldb
-        version: v1
       - componentName: github.com/konfidence-project/bookinfo/ratings
         name: ratings
         version: v2-mysql

@@ -4,7 +4,7 @@ set -e
 
 # Configuration
 SCENARIO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-COMPONENTS=("mysqldb-v1" "ratings-v2-mysql")
+COMPONENTS=("ratings-v2-mysql")
 TRANSFER_DIR="${SCENARIO_DIR}/ocm/ocm-transfer"
 COMPONENTS_DIR="${SCENARIO_DIR}/ocm/components"
 VECTORS_DIR="${SCENARIO_DIR}/ocm/vectors"

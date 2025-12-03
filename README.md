@@ -171,86 +171,102 @@ A backend service providing rating data. This service is highly configurable and
 #### Database Setup
 The `ratings` service is unique within the Bookinfo application because its `v2` version is designed to be a **stateful service** that connects to an external database. This provides a clear example of migrating a service from a simple in-memory store (`v1`) to a persistent, database-backed implementation (`v2`).
 
-The `ratings:v2` service is flexible and supports two different database backends: **MySQL** and **MongoDB**. The choice of which database to use is controlled at runtime via an environment variable.
+The `ratings:v2` service supports both **MySQL** and **MongoDB** backends. The choice of which database to use is controlled at runtime via an environment variable.
+
+**Note:** While the original Istio Bookinfo source code includes database setup files, this repository uses a GitOps approach to provision the MySQL database. The database is deployed separately via GitOps in the showroom repository, and the application connects to it using environment variables.
 
 ##### How it Works
 
-1.  **Deployment**: To use `ratings:v2`, you must deploy both the `ratings:v2` application pod and a corresponding database pod (`mysqldb` or `mongodb`) within the cluster.
-2.  **Configuration**: The `ratings:v2` service is configured with environment variables to tell it which database to connect to and where to find it.
-3.  **Initialization**: The provided database images (`examples-bookinfo-mysqldb` and `examples-bookinfo-mongodb`) are pre-configured with initialization scripts. When the database container starts, it automatically creates the necessary database, table/collection, and seeds it with initial data.
-
----
-
-##### 1. MySQL Setup
-
-To use the MySQL backend, you configure the `ratings` service to point to a MySQL instance.
-
-*   **Database Service**: A Kubernetes `Deployment` and `Service` for `mysqldb` must be running in the cluster. The provided `examples-bookinfo-mysqldb` container image handles the setup.
-*   **Initialization Script (`init.sql`)**:
-    *   Creates a database named `test`.
-    *   Creates a table named `ratings` with the schema:
-        ~~~sql
-        CREATE TABLE ratings (RatingID INT, Rating INT);
-        ~~~
-    *   Inserts two initial rows of data:
-        ~~~sql
-        INSERT INTO ratings (RatingID, Rating) VALUES (1, 5);
-        INSERT INTO ratings (RatingID, Rating) VALUES (2, 4);
-        ~~~
-* **Application Configuration (`ratings:v2`)**: To connect to this database, the `ratings:v2` deployment must have the following environment variables set:
+1.  **Database Deployment**: The MySQL database is provisioned externally via GitOps (see [showroom-gitops repo](https://github.com/konfidence-project/gitops-showroom/blob/main/clusters/msp03-kden-showroom/example-app/database.yaml)). The database initialization is handled by a ConfigMap with SQL scripts.
+2.  **Application Configuration**: The `ratings:v2` service is configured with environment variables to connect to the MySQL database:
     *   `DB_TYPE=mysql`
     *   `MYSQL_DB_HOST`: The service name for the MySQL instance (e.g., `mysqldb`).
     *   `MYSQL_DB_PORT`: The port for the MySQL instance (e.g., `3306`).
     *   `MYSQL_DB_USER`: The username for the database.
     *   `MYSQL_DB_PASSWORD`: The password for the database user.
-
----
-
-##### 2. MongoDB Setup
-
-To use the MongoDB backend, you configure the `ratings` service to point to a MongoDB instance. This is the default behavior if `DB_TYPE` is not set to `mysql`.
-
-*   **Database Service**: A Kubernetes `Deployment` and `Service` for `mongodb` must be running in the cluster. The `examples-bookinfo-mongodb` container image handles the setup.
-*   **Initialization Script (`ratings-db.js`)**:
-    *   Connects to a database named `test`.
-    *   Creates a collection named `ratings`.
-    *   Inserts two initial documents:
-        ```javascript
-        db.ratings.insert({rating: 5});
-        db.ratings.insert({rating: 4});
-        ```
-*  **Application Configuration (`ratings:v2`)**: To connect to this database, the `ratings:v2` deployment must have the following environment variable set:
-*   `MONGO_DB_URL`: The full connection string for the MongoDB instance (e.g., `mongodb://mongodb:27017/test`).
+3.  **Database Schema**: The MySQL database is initialized with:
+    *   Database named `test`
+    *   Table named `ratings` with schema: `ReviewID INT NOT NULL, Rating INT, PRIMARY KEY (ReviewID)`
+    *   Initial data: Two rows with ratings values 5 and 4
 
 
-### Provided Artifacts
+### Source Code Modifications
 
-Istio provides pre-built container images for all Bookinfo services.
+The original Istio Bookinfo application source code has been **modified** to support Konfidence-specific features:
+
+1. **Vector ID Header Forwarding**: All services have been updated to forward the `x-vector-id` header to downstream services. This enables vector-based routing in Konfidence.
+   - **ProductPage**: Added header forwarding in `getForwardHeaders()` function
+   - **Details**: Added header forwarding in `get_forward_headers()` function
+   - **Reviews**: Added header forwarding in `getRatings()` method
+   - **Ratings**: No downstream calls, but logs incoming headers
+
+2. **Enhanced Logging**: All services have been enhanced to log incoming request headers to stdout for debugging and verification of header propagation.
+
+3. **Custom Images**: Modified images are built and published to Artifactory instead of using Istio's pre-built images.
 
 ### Build System Overview
 
-Istio uses Docker Buildx with docker-bake for creating multi-platform container images. The entire process is orchestrated through a single script (`src/build-services.sh`) located in the (samples/bookinfo)[https://github.com/istio/istio/blob/master/samples/bookinfo/src/build-services.sh] directory that handles compilation, containerization, and registry publishing.
+This repository uses Docker Buildx with docker-bake (similar to Istio's approach) for creating multi-platform container images. The build configuration is located in [`app-source/docker-bake.hcl`](app-source/docker-bake.hcl).
+
+**Key differences from Istio's original setup:**
+- Removed some service versions (e.g., reviews-v3, details-v2) that are not needed for our scenarios
+- Images are built for both `linux/amd64` and `linux/arm64` platforms
+- Images are published to Artifactory: `konfidence.common.repositories.cloud.sap/example-app-tests/apps`
+
+**Building Images:**
+
+```bash
+cd app-source
+docker buildx bake --push
+```
+
+This will build and push all images defined in `docker-bake.hcl` to the configured registry.
 
 ### Available OCI Images
 
-Istio maintains official pre-built images on Docker Hub under the `istio` organization. The current stable release (1.20.2) provides:
+All images are published to `konfidence.common.repositories.cloud.sap/example-app-tests/apps`:
 
 **Application Services:**
 
-- `docker.io/istio/examples-bookinfo-productpage-v1:1.20.2`
-- `docker.io/istio/examples-bookinfo-details-v1:1.20.2`
-- `docker.io/istio/examples-bookinfo-reviews-v1:1.20.2`
-- `docker.io/istio/examples-bookinfo-reviews-v2:1.20.2`
-- `docker.io/istio/examples-bookinfo-reviews-v3:1.20.2`
-- `docker.io/istio/examples-bookinfo-ratings-v1:1.20.2`
-- `docker.io/istio/examples-bookinfo-ratings-v2:1.20.2`
+- `konfidence.common.repositories.cloud.sap/example-app-tests/apps/examples-bookinfo-productpage-v1:latest`
+- `konfidence.common.repositories.cloud.sap/example-app-tests/apps/examples-bookinfo-details-v1:latest`
+- `konfidence.common.repositories.cloud.sap/example-app-tests/apps/examples-bookinfo-reviews-v1:latest`
+- `konfidence.common.repositories.cloud.sap/example-app-tests/apps/examples-bookinfo-reviews-v2:latest`
+- `konfidence.common.repositories.cloud.sap/example-app-tests/apps/examples-bookinfo-ratings-v1:latest`
+- `konfidence.common.repositories.cloud.sap/example-app-tests/apps/examples-bookinfo-ratings-v2:latest`
 
 **Database Services:**
 
-- `docker.io/istio/examples-bookinfo-mysqldb:1.20.2`
-- `docker.io/istio/examples-bookinfo-mongodb:1.20.2`
+- `konfidence.common.repositories.cloud.sap/example-app-tests/apps/examples-bookinfo-mysqldb:latest`
+- `konfidence.common.repositories.cloud.sap/example-app-tests/apps/examples-bookinfo-mongodb:latest`
 
-Additional specialized images are available for fault injection testing (`v-faulty`, `v-delayed`, `v-unavailable`, `v-unhealthy`).
+> **Note**: The original Istio images are available on Docker Hub under `docker.io/istio/examples-bookinfo-*:1.20.2`, but this example application uses the modified versions.
+
+### Alternative Approach: Vector Sidecar
+
+Instead of modifying application source code to forward `x-vector-id` headers, we considered using a **custom sidecar proxy** that automatically propagates vector IDs by correlating them with tracing headers. This approach would eliminate the need for application code changes.
+
+**Vector Sidecar Solution:**
+
+The [vector-sidecar](https://github.com/konfidence-project/vector-sidecar) project provides a lightweight Go-based sidecar that:
+
+- **Zero application code changes**: Works with existing apps that propagate tracing headers (e.g., `x-b3-traceid`, `traceparent`)
+- **Automatic header injection**: Correlates incoming `x-vector-id` headers with trace IDs and automatically injects the vector ID into outbound requests
+- **Transparent traffic interception**: Uses iptables rules (similar to Istio) to intercept traffic without requiring proxy configuration
+- **Lightweight**: ~10-15MB memory footprint per sidecar
+
+**How it works:**
+
+1. **Inbound Request**: Sidecar validates `x-vector-id` header, extracts/generates trace ID, and stores the mapping (trace-id → vector-id)
+2. **Outbound Request**: Application includes trace ID (already propagated), sidecar looks up the vector ID and injects `x-vector-id` header
+
+**Why we chose application modifications instead:**
+
+While the sidecar approach requires no code changes, we chose to modify the application source code for this example because vector-header forwarding is an essential requirement of konfidence. 
+
+TODO: add more explanations
+
+See the [vector-sidecar repository](https://github.com/konfidence-project/poc-vector-sidecar) for more details.
 
 ### Kubernetes Manifests
 
@@ -474,9 +490,6 @@ kubectl get pods -n bookinfo-dev
 ### Scenario 2: Multi-Stage Deployment with Vector Reuse
 
 **Goal**: Demonstrate vector and artifact reuse across multiple stages, where multiple vectors share common artifacts (productpage, details) while using different versions of other services (reviews-v1 vs reviews-v2).
-
-**Prerequisites**: Vector 1 already deployed to dev stage (from Scenario 1)
-
 #### Setup
 
 ##### Prerequisites
@@ -684,17 +697,16 @@ kubectl get pods -n bookinfo-dev
 
 ### Scenario 3: MySQL Database Schema Migration
 
-**Goal**: Demonstrate a simple database schema migration using Konfidence's task engine. This scenario shows how to add a `created_at` timestamp column to the ratings table using migration tasks that run before the application deployment.
+**Goal**: Demonstrate a simple database schema migration using Konfidence's task engine. This scenario shows how to add a `created_at` timestamp column to the ratings table using migration tasks that run before the application deployment. The MySQL database is provisioned externally via GitOps, demonstrating separation of infrastructure and application deployment.
 
-**Prerequisites**: 
-- All prerequisites from Scenario 1
-- Vector 1 and Vector 2 already deployed (optional, but demonstrates component reuse)
+
 
 #### Setup
 
 ##### Prerequisites
 
-- All prerequisites from Scenario 1
+- Vector 1 and Vector 2 already deployed (optional, but demonstrates component reuse)
+- MySQL database deployed and running, accessible at `mysqldb:3306` (provisioned via GitOps in the [showroom-gitops repo](https://github.com/konfidence-project/gitops-showroom/blob/main/clusters/msp03-kden-showroom/example-app/database.yaml))
 - Access to OCI registry: `konfidence.common.repositories.cloud.sap`
 - ORAS CLI installed
 - OCM CLI installed
@@ -705,18 +717,14 @@ kubectl get pods -n bookinfo-dev
 
 ##### Step 1: Push Kustomizations to OCI Registry
 
-Push each kustomization directory as an OCI artifact:
+Push the ratings-v2-mysql kustomization directory as an OCI artifact:
 
 ```bash
 # Navigate to scenario-3 directory
 cd scenario-3
 
-# Push kustomizations
+# Push kustomization
 cd manifests/kustomizations
-oras push konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/mysqldb-v1:v0.0.1 \
-  ./mysqldb-v1/ \
-  --artifact-type application/vnd.kustomize.config.v1+yaml
-
 oras push konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/ratings-v2-mysql:v0.0.1 \
   ./ratings-v2-mysql/ \
   --artifact-type application/vnd.kustomize.config.v1+yaml
@@ -724,13 +732,13 @@ oras push konfidence.common.repositories.cloud.sap/example-app-tests/kustomizati
 
 **Verify:**
 ```bash
-oras repo tags konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/mysqldb-v1
+oras repo tags konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/ratings-v2-mysql
 # Expected: v0.0.1
 ```
 
 ##### Step 2: Build and Push OCM Components
 
-Build and push OCM components that reference the kustomizations. The ratings-v2-mysql component includes task manifests for database migrations:
+Build and push the OCM component that references the kustomization. The ratings-v2-mysql component includes task manifests for database migrations:
 
 ```bash
 # Navigate to OCM components directory
@@ -739,22 +747,20 @@ cd ../../ocm
 # Create temporary transfer directory
 mkdir -p ocm-transfer
 
-# Add mysqldb-v1 and ratings-v2-mysql components to CTF
-ocm add componentversions --create --file ocm-transfer/mysqldb-v1 components/mysqldb-v1/component.yaml
+# Add ratings-v2-mysql component to CTF
 ocm add componentversions --create --file ocm-transfer/ratings-v2-mysql components/ratings-v2-mysql/component.yaml
 
-# Transfer all components to registry
-ocm transfer ctf ocm-transfer/mysqldb-v1 konfidence.common.repositories.cloud.sap/example-app-tests --overwrite
+# Transfer component to registry
 ocm transfer ctf ocm-transfer/ratings-v2-mysql konfidence.common.repositories.cloud.sap/example-app-tests --overwrite
 ```
 
 **What this does:**
 
-- Creates CTF archives for each component
+- Creates a CTF archive for the ratings-v2-mysql component
 - Packages the `konfidence-manifest` (manifest.json) as an OCM resource
-- Packages task manifests (for ratings-v2-mysql) as OCM resources
-- Creates references to the kustomization OCI artifacts (from Step 1)
-- Transfers CTF archives to the registry with `--overwrite` for easy re-deployment
+- Packages task manifests as OCM resources
+- Creates references to the kustomization OCI artifact (from Step 1)
+- Transfers CTF archive to the registry with `--overwrite` for easy re-deployment
 
 ##### Step 3: Build and Push OCM Vector 3
 
@@ -775,7 +781,6 @@ ocm transfer ctf ocm-transfer/vector-3 konfidence.common.repositories.cloud.sap/
   - `productpage:v1` (from scenario-1)
   - `details:v1` (from scenario-1)
   - `reviews:v2` (from scenario-2)
-  - `mysqldb:v1` (new)
   - `ratings:v2-mysql` (new, with migration tasks)
 - Transfers the vector definition to the registry
 
@@ -785,10 +790,8 @@ ocm transfer ctf ocm-transfer/vector-3 konfidence.common.repositories.cloud.sap/
 oras repo ls konfidence.common.repositories.cloud.sap/example-app-tests
 
 # Expected output should include:
-# - component-descriptors/github.com/konfidence-project/bookinfo/mysqldb
 # - component-descriptors/github.com/konfidence-project/bookinfo/ratings
 # - component-descriptors/github.com/konfidence-project/bookinfo/vector-3
-# - kustomizations/mysqldb-v1
 # - kustomizations/ratings-v2-mysql
 ```
 
@@ -796,7 +799,6 @@ oras repo ls konfidence.common.repositories.cloud.sap/example-app-tests
 - `github.com/konfidence-project/bookinfo/productpage:v1` (from scenario-1)
 - `github.com/konfidence-project/bookinfo/details:v1` (from scenario-1)
 - `github.com/konfidence-project/bookinfo/reviews:v2` (from scenario-2)
-- `github.com/konfidence-project/bookinfo/mysqldb:v1` (new)
 - `github.com/konfidence-project/bookinfo/ratings:v2-mysql` (new, with migration tasks)
 - Vector version: `github.com/konfidence-project/bookinfo/vector-3:v1.0.0`
 
@@ -809,7 +811,7 @@ cd scenario-3
 ./build-and-transfer-ocm.sh
 ```
 
-> **Note:** The build script only handles Steps 2 and 3 (OCM components and vector). You still need to push kustomizations manually (Step 1) before running the script.
+> **Note:** The build script only handles Steps 2 and 3 (OCM component and vector). You still need to push kustomizations manually (Step 1) before running the script.
 
 ##### Step 4: Deploy Stage to Konfidence
 
@@ -853,72 +855,62 @@ kubectl get vectormigration stage-version-dev-3-<unique-id>-migration -n bookinf
 
 #### Expected Results
 
+**External MySQL Database (Provisioned via GitOps):**
+
+- 1 Deployment: `mysqldb-v1`
+- 1 Service: `mysqldb` (accessible at `mysqldb:3306`)
+- 1 ConfigMap: `mysql-init-script` (contains database initialization SQL)
+- Database initialized with:
+  - Database: `test`
+  - Table: `ratings` with schema `ReviewID INT NOT NULL, Rating INT, PRIMARY KEY (ReviewID)`
+  - Initial data: Two rows with ratings values 5 and 4
+
 **Konfidence Resources Created:**
 
 - 1 Stage: `dev-3` (in namespace `bookinfo-dev`)
 - 1 StageVersion: `stage-version-dev-3-<unique-id>` (e.g., `stage-version-dev-3-87ggcfbq`)
 - 1 VectorDeployment: `github.com.konfidence-project.bookinfo.vector-3-v1.0.0`
-- 6 ArtifactDeployments (named by hash):
+- 4 ArtifactDeployments (named by hash):
   - ArtifactDeployments for all components referenced by vector-3:
     - `productpage-kustomization-<hash>` (reused from scenario-1)
     - `details-kustomization-<hash>` (reused from scenario-1)
-    - `reviews-kustomization-<hash>` (reused from scenario-2, reviews-v1)
     - `reviews-kustomization-<hash>` (reused from scenario-2, reviews-v2)
-    - `mysqldb-kustomization-<hash>` (new)
     - `ratings-v2-mysql-kustomization-<hash>` (new, with migration tasks)
 - 1 VectorMigration: `stage-version-dev-3-<unique-id>-migration` (created after all artifacts are deployed, status: `VectorMigrationSucceeded`)
-- TaskExecutions: Created during the migration phase (may not be visible if tasks completed and were cleaned up):
-  - `test-task` - Simple logging task to verify task orchestration is working (currently enabled for initial testing)
-  - `verify-mysql-ready` - Verifies MySQL is accessible (disabled for initial testing)
-  - `run-schema-migration` - Adds `created_at` column to ratings table (disabled for initial testing)
-  - `verify-migration` - Verifies the migration was successful (disabled for initial testing)
+- 3 TaskExecutions: Created during the migration phase (may not be visible if tasks completed and were cleaned up):
+  - `verify-mysql-ready` - Verifies MySQL is accessible
+  - `run-schema-migration` - Adds `created_at` column to ratings table (idempotent)
+  - `verify-migration` - Verifies the migration was successful
 
 **Flux Resources Created:**
 
-- 6 OciRepositories (all scenarios combined):
-  - `oci://konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/details-v1`
-  - `oci://konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/productpage-v1`
-  - `oci://konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/reviews-v1`
-  - `oci://konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/reviews-v2`
-  - `oci://konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/mysqldb-v1` (new)
+- 4 OciRepositories for vector-3 components:
+  - `oci://konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/details-v1` (reused)
+  - `oci://konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/productpage-v1` (reused)
+  - `oci://konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/reviews-v2` (reused)
   - `oci://konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/ratings-v2-mysql` (new)
-- 6 Kustomizations (named by hash):
-  - `details-kustomization-<hash>`
-  - `productpage-kustomization-<hash>`
-  - `reviews-kustomization-<hash>` (reviews-v1)
-  - `reviews-kustomization-<hash>` (reviews-v2)
-  - `mysqldb-kustomization-<hash>` (new)
+- 4 Kustomizations (named by hash) for vector-3:
+  - `details-kustomization-<hash>` (reused)
+  - `productpage-kustomization-<hash>` (reused)
+  - `reviews-kustomization-<hash>` (reviews-v2, reused)
   - `ratings-v2-mysql-kustomization-<hash>` (new)
 
 **Application Resources Created:**
 
-- 6 Deployments (all scenarios combined):
-  - `productpage-v1-<hash>`
-  - `details-v1-<hash>`
-  - `reviews-v1-<hash>`
-  - `reviews-v2-<hash>`
-  - `mysqldb-v1-<hash>` (new)
+- 4 Deployments for vector-3:
+  - `productpage-v1-<hash>` (reused from scenario-1)
+  - `details-v1-<hash>` (reused from scenario-1)
+  - `reviews-v2-<hash>` (reused from scenario-2)
   - `ratings-v2-mysql-<hash>` (new)
-- 6 Services (all scenarios combined):
-  - `productpage-<hash>`
-  - `details-<hash>`
-  - `reviews-<hash>` (reviews-v1)
-  - `reviews-<hash>` (reviews-v2)
-  - `mysqldb-<hash>` (new)
+- 4 Services for vector-3:
+  - `productpage-<hash>` (reused)
+  - `details-<hash>` (reused)
+  - `reviews-<hash>` (reviews-v2, reused)
   - `ratings-<hash>` (new)
-- 1 ConfigMap (new):
-  - `mysql-init-script-<hash>` (contains database initialization SQL)
 
 **Migration Tasks:**
 
-Currently, only the `test-task` is enabled for initial testing. The migration tasks are defined but disabled in the component manifest. To enable the full migration workflow, uncomment the task manifests in `scenario-3/ocm/components/ratings-v2-mysql/component.yaml`.
-
-**Test Task (Currently Enabled):**
-- `test-task` - Simple logging task that prints messages and sleeps for 30 seconds to verify task orchestration is working
-
-**Migration Tasks (Disabled for Initial Testing):**
-
-The migration tasks will run in the following order when enabled:
+The migration tasks run in the following order:
 
 1. **verify-mysql-ready**: Uses `mysqladmin ping` to verify MySQL is accessible
 2. **run-schema-migration**: Executes SQL to add `created_at` column (idempotent - checks if column exists first)
@@ -948,5 +940,5 @@ ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 - **Task Dependencies**: Tasks have explicit dependencies (`dependsOn`) ensuring correct execution order
 - **Database Migration Pattern**: Demonstrates a real-world pattern for schema migrations using Kubernetes Jobs
 - **Component Reuse**: Vector-3 reuses components from scenario-1 (productpage, details) and scenario-2 (reviews)
+- **External Infrastructure**: MySQL database is provisioned externally via GitOps, demonstrating separation of infrastructure and application deployment
 - **Multi-Phase Deployment**: Deployment → Migration → Activation workflow
-- **Migration Example**: Vector migration with database deployment and data migration tasks
