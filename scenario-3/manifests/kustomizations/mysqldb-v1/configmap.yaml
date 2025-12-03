@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-init-script
+data:
+  mysqldb-init.sql: |
+    # Initialize a mysql db with a 'test' db and be able test productpage with it.
+    CREATE DATABASE IF NOT EXISTS test;
+    USE test;
+
+    CREATE TABLE IF NOT EXISTS `ratings` (
+      `ReviewID` INT NOT NULL,
+      `Rating` INT,
+      PRIMARY KEY (`ReviewID`)
+    );
+    INSERT IGNORE INTO ratings (ReviewID, Rating) VALUES (1, 5);
+    INSERT IGNORE INTO ratings (ReviewID, Rating) VALUES (2, 4);
+

@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysqldb-v1
+  labels:
+    app: mysqldb
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysqldb
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: mysqldb
+        version: v1
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:9.3.0
+          ports:
+            - containerPort: 3306
+              name: mysql
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: "password"
+            - name: MYSQL_DATABASE
+              value: "test"
+          volumeMounts:
+            - name: mysql-init
+              mountPath: /docker-entrypoint-initdb.d
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+      volumes:
+        - name: mysql-init
+          configMap:
+            name: mysql-init-script
+

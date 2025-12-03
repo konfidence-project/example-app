@@ -1,0 +1,25 @@
+{
+  "name": "run-schema-migration",
+  "type": "k8s-job",
+  "dependsOn": ["verify-mysql-ready"],
+  "spec": {
+    "template": {
+      "spec": {
+        "restartPolicy": "Never",
+        "containers": [
+          {
+            "name": "run-schema-migration-container",
+            "image": "mysql:8.0",
+            "command": [
+              "sh",
+              "-c",
+              "mysql -h mysqldb -u root -ppassword -e \"SELECT COUNT(*) as count FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='test' AND TABLE_NAME='ratings' AND COLUMN_NAME='created_at';\" | grep -q '0' && mysql -h mysqldb -u root -ppassword -e \"ALTER TABLE test.ratings ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;\" || echo 'Column already exists'"
+            ]
+          }
+        ]
+      }
+    },
+    "backoffLimit": 4
+  }
+}
+

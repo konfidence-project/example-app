@@ -1,0 +1,29 @@
+{
+  "name": "verify-mysql-ready",
+  "type": "k8s-job",
+  "dependsOn": [],
+  "spec": {
+    "template": {
+      "spec": {
+        "restartPolicy": "Never",
+        "containers": [
+          {
+            "name": "verify-mysql-ready-container",
+            "image": "mysql:8.0",
+            "command": [
+              "mysqladmin",
+              "ping",
+              "-h",
+              "mysqldb",
+              "-u",
+              "root",
+              "-ppassword"
+            ]
+          }
+        ]
+      }
+    },
+    "backoffLimit": 4
+  }
+}
+
