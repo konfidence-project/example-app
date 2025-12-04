@@ -73,18 +73,6 @@ images = [
       service_version = "v2"
     }
     source = "ratings"
-  },
-
-  // mysql
-  {
-    name   = "examples-bookinfo-mysqldb"
-    source = "mysql"
-  },
-
-  // mongo
-  {
-    name   = "examples-bookinfo-mongodb"
-    source = "mongodb"
   }
 ]
 

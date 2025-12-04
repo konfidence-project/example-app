@@ -1,0 +1,78 @@
+# yaml-language-server: $schema=https://ocm.software/schemas/configuration-schema.yaml
+components:
+  - name: github.com/konfidence-project/bookinfo/ratings
+    version: v2-mysql
+    provider:
+      name: konfidence-project
+    sources: []
+    resources:
+      # Kustomization artifact (OCI reference)
+      - name: ratings-v2-mysql-kustomization
+        version: v0.0.1
+        relation: external
+        type: kustomize
+        access:
+          type: ociArtifact
+          imageReference: konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/ratings-v2-mysql:v0.0.1
+
+      # Konfidence deployment manifest
+      - name: konfidence-manifest
+        relation: local
+        type: cloud.konfidence.artifact.manifest
+        input:
+          type: file
+          path: ./manifest.json
+
+      # Task manifest: verify-mysql-ready
+      - name: verify-mysql-ready-manifest
+        version: v0.0.1
+        relation: local
+        type: cloud.konfidence.artifact.task.manifest
+        input:
+          type: file
+          path: ./task-manifests/verify-mysql-ready/task-manifest.json
+
+      # Task container image: verify-mysql-ready
+      - name: verify-mysql-ready-image
+        version: v0.0.1
+        relation: external
+        type: ociImage
+        access:
+          type: ociArtifact
+          imageReference: mysql:8.0
+
+      # Task manifest: run-schema-migration
+      - name: run-schema-migration-manifest
+        version: v0.0.1
+        relation: local
+        type: cloud.konfidence.artifact.task.manifest
+        input:
+          type: file
+          path: ./task-manifests/run-schema-migration/task-manifest.json
+
+      # Task container image: run-schema-migration
+      - name: run-schema-migration-image
+        version: v0.0.1
+        relation: external
+        type: ociImage
+        access:
+          type: ociArtifact
+          imageReference: mysql:8.0
+
+      # Task manifest: verify-migration
+      - name: verify-migration-manifest
+        version: v0.0.1
+        relation: local
+        type: cloud.konfidence.artifact.task.manifest
+        input:
+          type: file
+          path: ./task-manifests/verify-migration/task-manifest.json
+
+      # Task container image: verify-migration
+      - name: verify-migration-image
+        version: v0.0.1
+        relation: external
+        type: ociImage
+        access:
+          type: ociArtifact
+          imageReference: mysql:8.0

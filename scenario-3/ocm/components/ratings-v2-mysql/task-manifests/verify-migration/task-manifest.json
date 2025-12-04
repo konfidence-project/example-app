@@ -1,0 +1,30 @@
+{
+  "name": "verify-migration",
+  "type": "k8s-job",
+  "dependsOn": ["run-schema-migration"],
+  "spec": {
+    "template": {
+      "spec": {
+        "restartPolicy": "Never",
+        "containers": [
+          {
+            "name": "verify-migration-container",
+            "image": "mysql:8.0",
+            "command": [
+              "mysql",
+              "-h",
+              "mysqldb",
+              "-u",
+              "root",
+              "-ppassword",
+              "-e",
+              "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='test' AND TABLE_NAME='ratings' AND COLUMN_NAME='created_at';"
+            ]
+          }
+        ]
+      }
+    },
+    "backoffLimit": 4
+  }
+}
+
