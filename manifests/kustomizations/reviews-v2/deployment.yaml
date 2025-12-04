@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reviews-v2
+  labels:
+    app: reviews
+    version: v2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reviews
+      version: v2
+  template:
+    metadata:
+      labels:
+        app: reviews
+        version: v2
+    spec:
+      serviceAccountName: bookinfo-reviews
+      containers:
+      - name: reviews
+        image: reviews
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 9080
+        env:
+        - name: ENABLE_RATINGS
+          value: "false"
+      imagePullSecrets:
+        - name: konfidence-common-repositories-cloud-sap

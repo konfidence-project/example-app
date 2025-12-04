@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://ocm.software/schemas/configuration-schema.yaml
+components:
+  - name: github.com/konfidence-project/bookinfo/vector-2
+    version: v1.0.0
+    provider:
+      name: konfidence-project
+    labels:
+      - name: com.konfidence.vector-id
+        value: "67fca383-6d2c-493a-b2be-dc80ecca82f8"
+        version: v1
+    componentReferences:
+      - componentName: github.com/konfidence-project/bookinfo/productpage
+        name: productpage
+        version: v1
+      - componentName: github.com/konfidence-project/bookinfo/details
+        name: details
+        version: v1
+      - componentName: github.com/konfidence-project/bookinfo/reviews
+        name: reviews
+        version: v2
+    sources: []
+    resources: []

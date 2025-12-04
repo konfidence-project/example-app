@@ -19,13 +19,15 @@ spec:
     spec:
       serviceAccountName: bookinfo-productpage
       containers:
-      - name: productpage
-        image: productpage
-        imagePullPolicy: IfNotPresent
-        ports:
-        - containerPort: 9080
-        env:
-        - name: DETAILS_HOSTNAME
-          value: details
-        - name: REVIEWS_HOSTNAME
-          value: reviews
+        - name: productpage
+          image: productpage
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 9080
+          env:
+            - name: DETAILS_HOSTNAME
+              value: details
+            - name: REVIEWS_HOSTNAME
+              value: reviews
+      imagePullSecrets:
+        - name: konfidence-common-repositories-cloud-sap
