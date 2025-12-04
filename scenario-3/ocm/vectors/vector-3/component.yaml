@@ -4,23 +4,19 @@ components:
     version: v1.0.0
     provider:
       name: konfidence-project
-    labels:
-      - name: com.konfidence.vector-id
-        value: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-        version: v1
     componentReferences:
       - componentName: github.com/konfidence-project/bookinfo/productpage
         name: productpage
-        version: v1
+        version: v1.0.0
       - componentName: github.com/konfidence-project/bookinfo/details
         name: details
-        version: v1
+        version: v1.0.0
       - componentName: github.com/konfidence-project/bookinfo/reviews
         name: reviews
-        version: v2
+        version: v2.0.0
       - componentName: github.com/konfidence-project/bookinfo/ratings
         name: ratings
-        version: v2-mysql
+        version: v2.0.0
     sources: []
     resources: []
 

@@ -1,19 +1,19 @@
 # yaml-language-server: $schema=https://ocm.software/schemas/configuration-schema.yaml
 components:
   - name: github.com/konfidence-project/bookinfo/reviews
-    version: v2
+    version: v2.0.0
     provider:
       name: konfidence-project
     sources: []
     resources:
       # Kustomization artifact (OCI reference)
       - name: reviews-kustomization
-        version: v0.0.1
+        version: v2.0.0
         relation: external
         type: kustomize
         access:
           type: ociArtifact
-          imageReference: konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/reviews-v2:v0.0.1
+          imageReference: konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/reviews:v2.0.0
 
       # Konfidence deployment manifest
       - name: konfidence-manifest

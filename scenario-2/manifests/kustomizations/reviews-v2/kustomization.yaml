@@ -10,5 +10,5 @@ namespace: bookinfo-dev
 
 images:
   - name: reviews
-    newName: konfidence.common.repositories.cloud.sap/example-app-tests/apps/examples-bookinfo-reviews-v2
-    newTag: latest
+    newName: konfidence.common.repositories.cloud.sap/example-app-tests/apps/bookinfo-reviews
+    newTag: v2

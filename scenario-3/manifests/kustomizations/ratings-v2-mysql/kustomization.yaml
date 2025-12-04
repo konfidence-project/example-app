@@ -9,6 +9,6 @@ namespace: bookinfo-dev
 
 images:
   - name: ratings
-    newName: konfidence.common.repositories.cloud.sap/example-app-tests/apps/examples-bookinfo-ratings-v2
-    newTag: "latest"
+    newName: konfidence.common.repositories.cloud.sap/example-app-tests/apps/bookinfo-ratings
+    newTag: "v2.0.0"
 

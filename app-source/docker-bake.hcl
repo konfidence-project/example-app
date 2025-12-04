@@ -1,7 +1,3 @@
-variable "TAGS" {
-  default = "latest"
-}
-
 variable "HUB" {
   default = "konfidence.common.repositories.cloud.sap/example-app-tests/apps"
 }
@@ -13,19 +9,19 @@ variable "PLATFORMS" {
 images = [
   // Productpage
   {
-    name   = "examples-bookinfo-productpage-v1"
+    name   = "bookinfo-productpage"
     source = "productpage"
   },
   // Details
   {
-    name = "examples-bookinfo-details-v1"
+    name = "bookinfo-details"
     args = {
       service_version = "v1"
     }
     source = "details"
   },
   {
-    name = "examples-bookinfo-details-v2"
+    name = "bookinfo-details"
     args = {
       service_version              = "v2"
       enable_external_book_service = true
@@ -35,14 +31,14 @@ images = [
 
   // Reviews
   {
-    name = "examples-bookinfo-reviews-v1"
+    name = "bookinfo-reviews"
     args = {
       service_version = "v1"
     }
     source = "reviews"
   },
   {
-    name = "examples-bookinfo-reviews-v2"
+    name = "bookinfo-reviews"
     args = {
       service_version = "v2"
       enable_ratings  = true
@@ -50,7 +46,7 @@ images = [
     source = "reviews"
   },
   {
-    name = "examples-bookinfo-reviews-v3"
+    name = "bookinfo-reviews"
     args = {
       service_version = "v3"
       enable_ratings  = true
@@ -61,14 +57,14 @@ images = [
 
   // Ratings
   {
-    name = "examples-bookinfo-ratings-v1"
+    name = "bookinfo-ratings"
     args = {
       service_version = "v1"
     }
     source = "ratings"
   },
   {
-    name = "examples-bookinfo-ratings-v2"
+    name = "bookinfo-ratings"
     args = {
       service_version = "v2"
     }
@@ -80,11 +76,11 @@ target "default" {
   matrix = {
     item = images
   }
-  name    = item.name
+  name = "${item.name}-${lookup(lookup(item, "args", {}),"service_version","v1")}"
   context = "./${item.source}"
-  tags    = [
-    for x in setproduct([HUB], "${split(",", TAGS)}") : join("/${item.name}:", x)
+  tags = [
+    "${HUB}/${item.name}:${lookup(lookup(item, "args", {}), "service_version", "v1")}"
   ]
   args = lookup(item, "args", {})
-  platforms = split(",",lookup(item, "platforms", PLATFORMS))
+  platforms = split(",", lookup(item, "platforms", PLATFORMS))
 }
