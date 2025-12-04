@@ -3,6 +3,7 @@ kind: Service
 metadata:
   name: productpage
   labels:
+    konfidence.cloud/appname: productpage
     app: productpage
     service: productpage
 spec:
