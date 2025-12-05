@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://ocm.software/schemas/configuration-schema.yaml
 components:
-  - name: github.com/konfidence-project/bookinfo/vector
+  - name: github.com/konfidence-project/bookinfo/vector-1
     version: v1.0.0
     provider:
       name: konfidence-project
