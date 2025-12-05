@@ -3,6 +3,7 @@ kind: Service
 metadata:
   name: ratings
   labels:
+    konfidence.cloud/appname: ratings
     app: ratings
     service: ratings
 spec:
