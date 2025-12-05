@@ -10,5 +10,5 @@ namespace: bookinfo-dev
 
 images:
   - name: productpage
-    newName: konfidence.common.repositories.cloud.sap/example-app-tests/apps/examples-bookinfo-productpage-v1
-    newTag: latest
+    newName: konfidence.common.repositories.cloud.sap/example-app-tests/apps/bookinfo-productpage
+    newTag: v1

@@ -11,4 +11,5 @@ spec:
       name: http
   selector:
     app: ratings
+    version: v2-mysql
 

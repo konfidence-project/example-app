@@ -48,7 +48,13 @@ echo
 # Step 5: Transfer vector to remote repository
 echo "=== Step 5: Transferring Vector to Remote Repository ==="
 echo "Transferring vector: vector-2"
-ocm transfer ctf "${TRANSFER_DIR}/vector-2" "${REMOTE_REPO}" --overwrite
+ocm transfer ctf "${TRANSFER_DIR}/vector-2" "${REMOTE_REPO}" --enforce
+echo
+
+# Step 6: Clean up the transfer directory
+echo "=== Step 6: Cleaning Up Transfer Directory ==="
+rm -r "${TRANSFER_DIR}"
+echo "Cleaned up transfer directory: ${TRANSFER_DIR}"
 echo
 
 echo "Scenario 2 OCM build and transfer completed successfully!"

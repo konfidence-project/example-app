@@ -6,3 +6,6 @@ ocm/vectors/ocm-transfer/
 
 
 **/ocm-transfer/**
+
+.idea
+.vscode
