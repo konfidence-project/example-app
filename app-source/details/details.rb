@@ -54,14 +54,6 @@ end
 server.mount_proc '/details' do |req, res|
     log_request_headers(req)
     pathParts = req.path.split('/')
-    res.status = 200
-    res.body = {'status' => 'Details is healthy'}.to_json
-    res['Content-Type'] = 'application/json'
-end
-
-server.mount_proc '/details' do |req, res|
-    log_request_headers(req)
-    pathParts = req.path.split('/')
     headers = get_forward_headers(req)
 
     begin
