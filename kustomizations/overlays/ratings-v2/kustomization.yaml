@@ -1,14 +1,8 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
 resources:
-  - deployment.yaml
-  - service.yaml
-
-namespace: bookinfo-dev
-
+  - ../../bases/ratings
 images:
   - name: ratings
     newName: konfidence.common.repositories.cloud.sap/example-app-tests/apps/bookinfo-ratings
-    newTag: v2
-
+    newTag: "v2"

@@ -1,14 +1,8 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
 resources:
-  - deployment.yaml
-  - service.yaml
-  - serviceaccount.yaml
-
-namespace: bookinfo-dev
-
+  - ../../bases/productpage
 images:
   - name: productpage
     newName: konfidence.common.repositories.cloud.sap/example-app-tests/apps/bookinfo-productpage
-    newTag: v1
+    newTag: "v1"
