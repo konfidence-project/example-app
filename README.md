@@ -445,7 +445,7 @@ kubectl get pods -n bookinfo-dev
 
 ##### Step 1: Verify Kustomizations in OCI Registry
 
-Verify that a `v1.0.0` kustomization is pushed for each bookinfo microservice:
+Verify that kustomization with respective versions are pushed for each bookinfo microservice:
 
 ```bash
 oras repo tags konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/productpage
@@ -591,7 +591,7 @@ deployment.
 
 ##### Step 1: Verify Kustomizations in OCI Registry
 
-Verify that a `v1.0.0` kustomization is pushed for each bookinfo microservice:
+Verify that kustomization with respective versions are pushed for each bookinfo microservice:
 
 ```bash
 oras repo tags konfidence.common.repositories.cloud.sap/example-app-tests/kustomizations/productpage
