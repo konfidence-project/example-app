@@ -33,26 +33,27 @@ server = WEBrick::HTTPServer.new(
 
 trap 'INT' do server.shutdown end
 
-def log_request_headers(req)
-  $stdout.puts "Incoming request: #{req.request_method} #{req.path}"
-  $stdout.puts "Incoming request headers:"
+def get_vector_id(req)
+  vector_id_header = ENV['VECTOR_ID_HEADER'] || 'x-vector-id'
+  return req[vector_id_header] || ''
+end
+
+def log_request(service_name, direction, method, path, vector_id, status_code)
+  vector_id_str = vector_id.empty? ? 'vector-id=' : "vector-id=#{vector_id}"
+  $stdout.puts "[#{service_name}] #{direction} #{method} #{path} #{vector_id_str} status=#{status_code}"
   $stdout.flush
-  # Log all headers exactly as received by the server
-  req.each do |header, value|
-    $stdout.puts "  #{header}: #{value}"
-    $stdout.flush
-  end
 end
 
 server.mount_proc '/health' do |req, res|
-    log_request_headers(req)
+    vector_id = get_vector_id(req)
     res.status = 200
     res.body = {'status' => 'Details is healthy'}.to_json
     res['Content-Type'] = 'application/json'
+    log_request('details', 'IN', req.request_method, req.path, vector_id, res.status)
 end
 
 server.mount_proc '/details' do |req, res|
-    log_request_headers(req)
+    vector_id = get_vector_id(req)
     pathParts = req.path.split('/')
     headers = get_forward_headers(req)
 
@@ -65,11 +66,13 @@ server.mount_proc '/details' do |req, res|
         details = get_book_details(id, headers)
         res.body = details.to_json
         res['Content-Type'] = 'application/json'
+        res.status = 200
     rescue => error
         res.body = {'error' => error}.to_json
         res['Content-Type'] = 'application/json'
         res.status = 400
     end
+    log_request('details', 'IN', req.request_method, req.path, vector_id, res.status)
 end
 
 # TODO: provide details on different books.
@@ -112,7 +115,11 @@ def fetch_details_from_external_service(isbn, id, headers)
     request = Net::HTTP::Get.new(uri.request_uri)
     headers.each { |header, value| request[header] = value }
 
+    vector_id_header = ENV['VECTOR_ID_HEADER'] || 'x-vector-id'
+    vector_id = headers[vector_id_header] || ''
+    
     response = http.request(request)
+    log_request('details', 'OUT', 'GET', uri.to_s, vector_id, response.code.to_i)
 
     json = JSON.parse(response.body)
     book = json['items'][0]['volumeInfo']

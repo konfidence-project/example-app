@@ -249,25 +249,32 @@ function getLocalReviews (productId) {
   }
 }
 
-function logRequestHeaders(request) {
-  console.log('Incoming request: ' + request.method + ' ' + request.url)
-  console.log('Incoming request headers:')
-  // Log all headers exactly as received by the server
-  var headers = request.headers
-  for (var headerName in headers) {
-    if (headers.hasOwnProperty(headerName)) {
-      console.log('  ' + headerName + ': ' + headers[headerName])
-    }
-  }
+function getVectorId(request) {
+  var vectorIdHeader = process.env.VECTOR_ID_HEADER || 'x-vector-id'
+  return request.headers[vectorIdHeader] || ''
+}
+
+function logRequest(serviceName, direction, method, path, vectorId, statusCode) {
+  var vectorIdStr = vectorId ? 'vector-id=' + vectorId : 'vector-id='
+  console.log('[' + serviceName + '] ' + direction + ' ' + method + ' ' + path + ' ' + vectorIdStr + ' status=' + statusCode)
 }
 
 function handleRequest (request, response) {
   try {
-    logRequestHeaders(request)
-    console.log(request.method + ' ' + request.url)
+    var originalEnd = response.end
+    var vectorId = getVectorId(request)
+    
+    // Override response.end to log after status is set
+    response.end = function(chunk, encoding) {
+      logRequest('ratings', 'IN', request.method, request.url, vectorId, response.statusCode)
+      originalEnd.call(this, chunk, encoding)
+    }
+    
     dispatcher.dispatch(request, response)
   } catch (err) {
     console.log(err)
+    var vectorId = getVectorId(request)
+    logRequest('ratings', 'IN', request.method, request.url, vectorId, 500)
   }
 }
 
