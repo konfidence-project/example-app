@@ -36,6 +36,10 @@ build-apps: hermit ## Build and push Docker images for bookinfo applications
 build-kustomizations: hermit ## Build and push kustomizations for all bookinfo applications
 	@./kustomizations/build-and-push-kustomizations.sh
 
+.PHONY: build-ocm-components
+build-ocm-components: hermit ## Build and push OCM ComponentVersions for all bookinfo applications
+	@./kustomizations/build-and-push-kustomizations.sh
+
 .PHONY: scenario-1-ocm
 scenario-1-ocm: hermit ## Build and push OCM componentversions for scenario-1
 	@./scenario-1/build-and-transfer-ocm.sh
