@@ -32,7 +32,7 @@ patches:
         path: /spec/template/spec/containers/0/env/-
         value:
           name: STAR_COLOR
-          value: black
+          value: red
   - target:
       version: v1
       kind: Service
