@@ -122,16 +122,29 @@ trace.set_tracer_provider(provider)
 tracer = trace.get_tracer(__name__)
 
 
+def get_vector_id(request):
+    """Extract vector ID from request headers"""
+    vector_id_header = os.environ.get("VECTOR_ID_HEADER", "x-vector-id")
+    return request.headers.get(vector_id_header, "")
+
+def log_request(service_name, direction, method, path, vector_id, status_code):
+    """Log request in standardized one-line format"""
+    vector_id_str = f"vector-id={vector_id}" if vector_id else "vector-id="
+    print(f"[{service_name}] {direction} {method} {path} {vector_id_str} status={status_code}")
+    sys.stdout.flush()
+
 @app.before_request
-def log_request_headers():
-    """Log all incoming request headers"""
-    app.logger.info(f"Incoming request: {request.method} {request.path}")
-    app.logger.info("Incoming request headers:")
-    sys.stdout.flush()
-    # Log all headers exactly as received by the server
-    for header_name, header_value in request.headers:
-        app.logger.info(f"  {header_name}: {header_value}")
-    sys.stdout.flush()
+def log_incoming_request():
+    """Log incoming request"""
+    # Store vector ID for logging in after_request
+    g.vector_id = get_vector_id(request)
+
+@app.after_request
+def log_response(response):
+    """Log response after request is processed"""
+    vector_id = getattr(g, 'vector_id', '')
+    log_request('productpage', 'IN', request.method, request.path, vector_id, response.status_code)
+    return response
 
 
 def getForwardHeaders(request):
@@ -398,7 +411,17 @@ def getProductRatings(product_id, headers):
 
 def send_request(url, **kwargs):
     # We intentionally do not pool so that we can easily test load distribution across many versions of our backends
-    return requests.get(url, **kwargs)
+    vector_id_header = os.environ.get("VECTOR_ID_HEADER", "x-vector-id")
+    vector_id = kwargs.get('headers', {}).get(vector_id_header, '')
+    
+    try:
+        response = requests.get(url, **kwargs)
+        log_request('productpage', 'OUT', 'GET', url, vector_id, response.status_code)
+        return response
+    except Exception as e:
+        # Log error with status 0 or -1 to indicate failure
+        log_request('productpage', 'OUT', 'GET', url, vector_id, 0)
+        raise
 
 
 class Writer(object):

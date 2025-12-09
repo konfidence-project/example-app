@@ -31,24 +31,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.container.ContainerRequestContext;
-import javax.ws.rs.container.ContainerRequestFilter;
-import javax.ws.rs.ext.Provider;
-import java.io.IOException;
 import java.io.StringReader;
-
-@Provider
-class RequestHeaderLoggingFilter implements ContainerRequestFilter {
-    @Override
-    public void filter(ContainerRequestContext requestContext) throws IOException {
-        System.out.println("Incoming request: " + requestContext.getMethod() + " " + requestContext.getUriInfo().getPath());
-        System.out.println("Incoming request headers:");
-        // Log all headers exactly as received by the server
-        for (String headerName : requestContext.getHeaders().keySet()) {
-            System.out.println("  " + headerName + ": " + requestContext.getHeaderString(headerName));
-        }
-    }
-}
 
 @Path("/")
 public class LibertyRestEndpoint extends Application {
@@ -183,6 +166,9 @@ public class LibertyRestEndpoint extends Application {
         Response r = builder.get();
 
         int statusCode = r.getStatusInfo().getStatusCode();
+        String vectorIdStr = (vectorIdValue != null && !vectorIdValue.isEmpty()) ? "vector-id=" + vectorIdValue : "vector-id=";
+        System.out.println("[reviews] OUT GET " + ratings_service + "/" + productId + " " + vectorIdStr + " status=" + statusCode);
+        
         if (statusCode == Response.Status.OK.getStatusCode()) {
           try (StringReader stringReader = new StringReader(r.readEntity(String.class));
                JsonReader jsonReader = Json.createReader(stringReader)) {
@@ -193,6 +179,8 @@ public class LibertyRestEndpoint extends Application {
           return null;
         }
       } catch (ProcessingException e) {
+        String vectorIdStr = (vectorIdValue != null && !vectorIdValue.isEmpty()) ? "vector-id=" + vectorIdValue : "vector-id=";
+        System.out.println("[reviews] OUT GET " + ratings_service + "/" + productId + " " + vectorIdStr + " status=0");
         System.err.println("Error: unable to contact " + ratings_service + " got exception " + e);
         return null;
       }
