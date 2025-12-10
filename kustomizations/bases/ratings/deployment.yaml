@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ratings-v1
+  labels:
+    app: ratings
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ratings
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: ratings
+        version: v1
+    spec:
+      containers:
+        - name: ratings
+          image: ratings
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 9080
+              name: http
+          env:
+            - name: SERVICE_VERSION
+              value: "v1"
+      imagePullSecrets:
+        - name: konfidence-common-repositories-cloud-sap
+

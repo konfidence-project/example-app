@@ -14,5 +14,8 @@ components:
       - componentName: github.com/konfidence-project/bookinfo/reviews
         name: reviews
         version: v2.0.0
+      - componentName: github.com/konfidence-project/bookinfo/ratings
+        name: ratings
+        version: v1.0.0
     sources: []
     resources: []

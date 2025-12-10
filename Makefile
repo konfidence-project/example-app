@@ -6,12 +6,11 @@ export PATH := $(shell pwd)/bin:$(PATH)
 .PHONY: all
 all: ## Build and push all apps, their kustomizations, and OCM componentversions.
 	$(MAKE) build-apps
-	$(MAKE) scenario-1-kustomize
-	$(MAKE) scenario-1-ocm
-	$(MAKE) scenario-2-kustomize
-	$(MAKE) scenario-2-ocm
-	$(MAKE) scenario-3-kustomize
-	$(MAKE) scenario-3-ocm
+	$(MAKE) build-kustomizations
+	$(MAKE) build-ocm-components
+	$(MAKE) scenario-1
+	$(MAKE) scenario-2
+	$(MAKE) scenario-3
 
 # The help target prints out all targets with their descriptions organized
 # beneath their categories. The categories are represented by '##@' and the
@@ -34,28 +33,24 @@ help: ## Display this help.
 build-apps: hermit ## Build and push Docker images for bookinfo applications
 	cd app-source && docker buildx bake -f docker-bake.hcl --push
 
-.PHONY: scenario-1-kustomize
-scenario-1-kustomize: hermit ## Build and push kustomizations for scenario-1
-	@./scenario-1/build-and-push-kustomizations.sh
+.PHONY: build-kustomizations
+build-kustomizations: hermit ## Build and push kustomizations for all bookinfo applications
+	@./kustomizations/build-and-push-kustomizations.sh
 
-.PHONY: scenario-1-ocm
-scenario-1-ocm: hermit ## Build and push OCM componentversions for scenario-1
+.PHONY: build-ocm-components
+build-ocm-components: hermit ## Build and push ComponentVersions for all bookinfo applications
+	@./ocm/build-and-transfer-ocm.sh
+
+.PHONY: scenario-1
+scenario-1: hermit ## Build and push vector ComponentVersion for scenario-1
 	@./scenario-1/build-and-transfer-ocm.sh
 
-.PHONY: scenario-2-kustomize
-scenario-2-kustomize: hermit ## Build and push kustomizations for scenario-2
-	@./scenario-2/build-and-push-kustomizations.sh
-
-.PHONY: scenario-2-ocm
-scenario-2-ocm: hermit ## Build and push OCM componentversions for scenario-2
+.PHONY: scenario-2
+scenario-2: hermit ## Build and push vector ComponentVersion for scenario-2
 	@./scenario-2/build-and-transfer-ocm.sh
 
-.PHONY: scenario-3-kustomize
-scenario-3-kustomize: hermit ## Build and push kustomizations for scenario-3
-	@./scenario-3/build-and-push-kustomizations.sh
-
-.PHONY: scenario-3-ocm
-scenario-3-ocm: hermit ## Build and push OCM componentversions for scenario-3
+.PHONY: scenario-3
+scenario-3: hermit ## Build and push vector ComponentVersion for scenario-3
 	@./scenario-3/build-and-transfer-ocm.sh
 
 ##@ Dependencies
