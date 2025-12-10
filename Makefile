@@ -39,7 +39,7 @@ build-kustomizations: hermit ## Build and push kustomizations for all bookinfo a
 
 .PHONY: build-ocm-components
 build-ocm-components: hermit ## Build and push ComponentVersions for all bookinfo applications
-	@./kustomizations/build-and-push-kustomizations.sh
+	@./ocm/build-and-transfer-ocm.sh
 
 .PHONY: scenario-1
 scenario-1: hermit ## Build and push vector ComponentVersion for scenario-1

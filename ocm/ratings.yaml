@@ -7,7 +7,7 @@ components:
     sources: []
     resources:
       # Kustomization artifact (OCI reference)
-      - name: ratings-v1-mysql-kustomization
+      - name: ratings-kustomization
         version: v1.0.0
         relation: external
         type: kustomize
@@ -30,7 +30,7 @@ components:
     sources: []
     resources:
       # Kustomization artifact (OCI reference)
-      - name: ratings-v2-mysql-kustomization
+      - name: ratings-kustomization
         version: v2.0.0
         relation: external
         type: kustomize
@@ -46,7 +46,7 @@ components:
           path: ./manifest.json
       # Task manifest: verify-mysql-ready
       - name: verify-mysql-ready-manifest
-        version: v0.0.1
+        version: v1.0.0
         relation: local
         type: cloud.konfidence.artifact.task.manifest
         input:
@@ -54,7 +54,7 @@ components:
           path: ./ratings-tasks/verify-mysql-ready/task-manifest.json
       # Task manifest: run-schema-migration
       - name: run-schema-migration-manifest
-        version: v0.0.1
+        version: v1.0.0
         relation: local
         type: cloud.konfidence.artifact.task.manifest
         input:
@@ -62,7 +62,7 @@ components:
           path: ./ratings-tasks/run-schema-migration/task-manifest.json
       # Task manifest: verify-migration
       - name: verify-migration-manifest
-        version: v0.0.1
+        version: v1.0.0
         relation: local
         type: cloud.konfidence.artifact.task.manifest
         input:
@@ -70,7 +70,7 @@ components:
           path: ./ratings-tasks/verify-migration/task-manifest.json
       # Container image for all tasks
       - name: verify-migration-image
-        version: v0.0.1
+        version: v1.0.0
         relation: external
         type: ociImage
         access:
