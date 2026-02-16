@@ -769,3 +769,15 @@ ALTER TABLE test.ratings
 - **Task Dependencies**: Tasks have explicit dependencies (`dependsOn`) ensuring correct execution order
 - **Database Migration Pattern**: Demonstrates a real-world pattern for schema migrations using Kubernetes Jobs
 - **External Infrastructure**: MySQL database is provisioned externally via GitOps, demonstrating separation of infrastructure and application deployment
+
+
+## Development
+
+### Setup Git hooks
+
+We use git hooks to check the conventional-commit formatting at "commit-msg".
+
+```bash
+make install-git-hooks    # install all git hooks with prek
+make uninstall-git-hooks  # uninstall all git hooks with prek
+```
