@@ -285,7 +285,7 @@ These scenarios demonstrate how Bookinfo showcases Konfidence's key features. Ea
 ### Prerequisites
 
 - Access to OCI registry: `konfidence.common.repositories.cloud.sap`
-- [OCM CLI](https://ocm.software/docs/getting-started/installation/) installed
+- [OCM CLI](https://ocm.software/docs/getting-started/install-the-ocm-cli/) installed
 - Kubernetes cluster with Konfidence installed
 - kubectl configured
 
@@ -312,7 +312,7 @@ make build-ocm-components
 
 ##### Prerequisites
 
-- Make sure the common prerequisites are met: [common prerequisites](../README.md#prerequisites)
+- Make sure the common prerequisites are met: [common prerequisites](./README.md#prerequisites)
 
 ##### Manual Setup (Step-by-Step)
 
@@ -354,7 +354,7 @@ ocm check componentversion https://konfidence.common.repositories.cloud.sap/exam
 ```
 
 This checks all components of the vector recursively. It will report if any referenced component is missing.
-Please check the [common prerequisites](../README.md#prerequisites) to ensure all required components are available in the registry.
+Please check the [common prerequisites](./README.md#prerequisites) to ensure all required components are available in the registry.
 
 ##### Step 4: Deploy Stage to Konfidence
 
@@ -438,7 +438,7 @@ kubectl get pods -n bookinfo-dev
 
 ##### Prerequisites
 
-- Make sure the common prerequisites are met: [common prerequisites](../README.md#prerequisites)
+- Make sure the common prerequisites are met: [common prerequisites](./README.md#prerequisites)
 - Vector 1 from scenario 1 is deployed and running
 
 ##### Manual Setup (Step-by-Step)
@@ -484,7 +484,7 @@ ocm check componentversion https://konfidence.common.repositories.cloud.sap/exam
 ```
 
 This checks all components of the vector recursively. It will report if any referenced component is missing.
-Please check the [common prerequisites](../README.md#prerequisites) to ensure all required components are available in the registry.
+Please check the [common prerequisites](./README.md#prerequisites) to ensure all required components are available in the registry.
 
 ##### Step 4: Deploy Second Stage to Konfidence
 
@@ -582,7 +582,7 @@ deployment.
 
 ##### Prerequisites
 
-- Make sure the common prerequisites are met: [common prerequisites](../README.md#prerequisites)
+- Make sure the common prerequisites are met: [common prerequisites](./README.md#prerequisites)
 - Vectors from scenarios 1 and 2 are deployed and running
 - MySQL database deployed and running, accessible at `mysqldb:3306` (provisioned via GitOps in
   the [showroom-gitops repo](https://github.com/konfidence-project/gitops-showroom/blob/main/clusters/msp03-kden-showroom/example-app/database.yaml))
@@ -636,7 +636,7 @@ ocm check componentversion https://konfidence.common.repositories.cloud.sap/exam
 ```
 
 This checks all components of the vector recursively. It will report if any referenced component is missing.
-Please check the [common prerequisites](../README.md#prerequisites) to ensure all required components are available in the registry.
+Please check the [common prerequisites](./README.md#prerequisites) to ensure all required components are available in the registry.
 
 ##### Step 4: Deploy Stage to Konfidence
 
