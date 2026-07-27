@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-FROM ruby:3.4.3-slim
+FROM ruby:4.0.6-slim
 
 WORKDIR /opt/microservices
 COPY Gemfile Gemfile.lock /opt/microservices/
