@@ -14,6 +14,6 @@ dependencies {
     providedCompile 'javax.annotation:javax.annotation-api:1.3.2'
     providedCompile 'javax.inject:javax.inject:1'
     providedCompile 'javax.enterprise.concurrent:javax.enterprise.concurrent-api:1.1'
-    providedCompile 'javax.enterprise:cdi-api:1.2'
+    providedCompile 'javax.enterprise:cdi-api:2.0'
     providedCompile 'io.swagger:swagger-annotations:1.6.16'
 }
