@@ -1,0 +1,14 @@
+name: REUSE
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  reuse-lint:
+    name: REUSE
+    uses: konfidence-project/.github/.github/workflows/reuse-lint.yaml@v4
