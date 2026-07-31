@@ -11,4 +11,4 @@ permissions:
 jobs:
   reuse-lint:
     name: REUSE
-    uses: konfidence-project/.github/.github/workflows/reuse-lint.yaml@v4
+    uses: konfidence-project/.github/.github/workflows/reuse-lint.yaml@v4.3.0
