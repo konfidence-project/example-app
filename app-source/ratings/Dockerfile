@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-FROM node:23.11-slim
+FROM node:26.4-slim
 
 #hadolint ignore=DL3008
 RUN apt-get update \
