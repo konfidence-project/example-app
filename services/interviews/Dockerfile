@@ -1,11 +1,11 @@
-FROM node:22-alpine AS build
+FROM node:25-alpine AS build
 WORKDIR /src
 COPY package.json package-lock.json tsconfig.json ./
 RUN npm ci --no-audit --no-fund
 COPY src ./src
 RUN npx tsc -p . && npm prune --omit=dev
 
-FROM node:22-alpine
+FROM node:25-alpine
 WORKDIR /app
 COPY --from=build /src/node_modules ./node_modules
 COPY --from=build /src/dist ./dist
