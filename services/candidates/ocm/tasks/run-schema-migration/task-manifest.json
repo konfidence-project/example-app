@@ -1,0 +1,24 @@
+{
+  "name": "candidates-run-schema-migration",
+  "type": "k8s-job",
+  "dependsOn": ["candidates-verify-db-ready"],
+  "spec": {
+    "template": {
+      "spec": {
+        "restartPolicy": "Never",
+        "containers": [
+          {
+            "name": "run-migration",
+            "image": "${REGISTRY}/candidates-migrations:v0.1.0",
+            "envFrom": [{ "secretRef": { "name": "example-app-db-credentials" } }],
+            "command": ["/bin/sh", "-c"],
+            "args": [
+              "migrate -path=/migrations -database \"postgres://$PGUSER:$PGPASSWORD@$PGHOST:$PGPORT/$PGDATABASE?sslmode=${PGSSLMODE:-disable}&x-migrations-table=schema_migrations_candidates\" up"
+            ]
+          }
+        ]
+      }
+    },
+    "backoffLimit": 4
+  }
+}

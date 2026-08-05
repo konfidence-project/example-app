@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: candidates
+  labels:
+    app: candidates
+spec:
+  selector:
+    app: candidates
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

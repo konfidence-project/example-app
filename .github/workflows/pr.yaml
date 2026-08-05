@@ -1,0 +1,56 @@
+name: PR
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  candidates:
+    name: candidates (Go)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: services/candidates/go.mod
+      - name: vet + build
+        working-directory: services/candidates
+        run: |
+          go vet ./...
+          go build ./...
+
+  interviews:
+    name: interviews (TypeScript)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: install + typecheck
+        working-directory: services/interviews
+        run: |
+          npm ci
+          npx tsc -p . --noEmit
+
+  images:
+    name: docker build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: build service + migration images
+        run: |
+          docker build services/candidates
+          docker build services/candidates/migrations
+          docker build services/interviews
+          docker build services/interviews/migrations
+
+  reuse:
+    name: REUSE compliance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: fsfe/reuse-action@v5

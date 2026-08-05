@@ -1,0 +1,24 @@
+{
+  "name": "interviews-verify-migration",
+  "type": "k8s-job",
+  "dependsOn": ["interviews-run-schema-migration"],
+  "spec": {
+    "template": {
+      "spec": {
+        "restartPolicy": "Never",
+        "containers": [
+          {
+            "name": "verify-migration",
+            "image": "${REGISTRY}/interviews-migrations:v0.1.0",
+            "envFrom": [{ "secretRef": { "name": "example-app-db-credentials" } }],
+            "command": ["/bin/sh", "-c"],
+            "args": [
+              "migrate -path=/migrations -database \"postgres://$PGUSER:$PGPASSWORD@$PGHOST:$PGPORT/$PGDATABASE?sslmode=${PGSSLMODE:-disable}&x-migrations-table=schema_migrations_interviews\" version"
+            ]
+          }
+        ]
+      }
+    },
+    "backoffLimit": 4
+  }
+}

@@ -1,0 +1,38 @@
+# Go
+/services/candidates/candidates
+*.exe
+*.test
+*.out
+*.prof
+
+# Node
+node_modules/
+dist/
+npm-debug.log*
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Local overrides
+*.local
+.env
+.env.*
+!.env.example
+
+# Secrets / credentials / certs — never commit
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+kubeconfig
+*.kubeconfig
+**/.docker/config.json
+
+# OCM transfer artifacts
+/ocm-transfer/
+**/ocm-transfer/
