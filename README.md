@@ -94,23 +94,22 @@ don't deploy the workloads directly.
 
 A few things are implemented as interim workarounds because the platform
 capability they need is still in flight. Each will be simplified once the
-referenced issue lands.
+corresponding platform work lands.
 
 - **Service-to-service discovery is a hardcoded URL** — `interviews` reaches
   `candidates` via `CANDIDATES_URL` plus an `ExternalName` alias created by
   `hack/03-apply-konfidence-resources.sh`. The intended design is to resolve the
   address from the vector-data-service's deployment results (evaluate the
-  vector-id, read `deploymentResults`), so nothing is hardcoded. Blocked on
-  [konfidence-project#799](https://github.com/konfidence-project/konfidence-project/issues/799)
-  (east-west routing via deployment results). That same routing work also gates
+  vector-id, read `deploymentResults`), so nothing is hardcoded. This depends on
+  east-west routing via deployment results. That same routing work also gates
   the rest of the chain today: `VectorAssignment`s only become `Ready` once their
   HTTPRoute is accepted by a Gateway, and the `VectorData` ConfigMap (and thus
   live toggle values) is only materialized after the assignments are ready — so
-  until #799 lands, the feature toggles fall back to their defaults.
+  until east-west routing via deployment results is available, the feature
+  toggles fall back to their defaults.
 - **`X-Vector-ID` header name is configurable, not fixed** — set via
-  `VECTOR_ID_HEADER` because the header/propagation contract isn't finalized:
-  [konfidence-project#293](https://github.com/konfidence-project/konfidence-project/issues/293)
-  (ADR: vector context propagation). Once fixed we can rely on the canonical name.
+  `VECTOR_ID_HEADER` because the vector context propagation contract isn't
+  finalized. Once fixed we can rely on the canonical name.
 - **Artifacts are published with `ocm`, not `kden`** — `hack/02-pipeline.sh` uses
   the OCM CLI. `kden artifact push` would be the canonical tool (our descriptors
   already pass `kden artifact validate`), but it currently panics:

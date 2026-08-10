@@ -70,9 +70,9 @@ sed "s|\${REGISTRY}|$REGISTRY|g; s|example-landscape|$LANDSCAPE_NS|g" \
   "$ROOT/vector/stage.yaml" > "$work/stage.yaml"
 kubectl apply -f "$work/stage.yaml"
 
-# Stopgap until deployment-result-based service discovery lands
-# (konfidence-project/konfidence-project#799): interviews calls `candidates` by
-# name, but Konfidence deploys the Service with a version suffix.
+# Stopgap until deployment-result-based service discovery lands: interviews
+# calls `candidates` by name, but Konfidence deploys the Service with a version
+# suffix.
 echo "==> Aliasing the candidates Service"
 for _ in $(seq 1 60); do
   target="$(kubectl -n "$LANDSCAPE_NS" get svc -l app=candidates \
