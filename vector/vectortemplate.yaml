@@ -4,11 +4,11 @@ metadata:
   name: example-app
   namespace: example-landscape
 spec:
-  uploadTarget: oci::https://kind-registry:5000/example-app//github.com/konfidence-project/example-app/vector:main
+  uploadTarget: oci::http://kind-registry:5000/example-app//github.com/konfidence-project/example-app/vector:main
 
   components:
-    - name: oci::https://kind-registry:5000/example-app//github.com/konfidence-project/example-app/candidates:v0.1.0
-    - name: oci::https://kind-registry:5000/example-app//github.com/konfidence-project/example-app/interviews:v0.1.0
+    - name: oci::http://kind-registry:5000/example-app//github.com/konfidence-project/example-app/candidates:v0.1.0
+    - name: oci::http://kind-registry:5000/example-app//github.com/konfidence-project/example-app/interviews:v0.1.0
 
   vectorConfig:
     features:

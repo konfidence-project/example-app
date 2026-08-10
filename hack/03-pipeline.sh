@@ -1,16 +1,24 @@
 #!/usr/bin/env bash
 # Build the example-app images and publish all artifacts (container images,
 # kustomize bundles, Helm chart, OCM components) to the LOCAL kind registry.
+# This is the step a real CI pipeline runs; locally it targets the plain-HTTP
+# registry from 02-setup-registry.sh.
 #
-# Local setup uses a single name for the registry, kind-registry:5000, served
-# over TLS with a certificate trusted by the host (see hack/01). One name is
-# required because Konfidence rejects descriptors without resource digests, and
-# `ocm add` computes those digests by resolving each imageReference from the host
-# at publish time — so the host must resolve (via /etc/hosts) and trust the same
-# name the cluster pulls from.
+# Two names for the SAME registry container:
+#   - localhost:5000     : push target. docker and `flux push` only speak plain
+#                          HTTP automatically to localhost, not to a named host.
+#   - kind-registry:5000 : baked into the artifacts (the name the cluster pulls).
+#                          Needs an /etc/hosts alias so `ocm add` can resolve it.
+#
+# KNOWN BLOCKER (plain HTTP): `ocm add` computes resource digests by issuing a
+# HEAD against each imageReference, and the OCM CLI always uses HTTPS for a named
+# host (kind-registry) — there is no plain-HTTP switch for that path. We pass
+# --skip-reference-digest-processing so publishing succeeds, BUT the resulting
+# descriptor has no resource digests, and Konfidence rejects it downstream with
+# "descriptor is not safely digestible: missing digest". See hack/README-HTTP.md.
 set -euo pipefail
 
-PUSH="kind-registry:5000/example-app"   # single name, host + cluster (TLS)
+PUSH="localhost:5000/example-app"   # push target (plain HTTP via localhost)
 VERSION="${VERSION:-v0.1.0}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
@@ -29,15 +37,15 @@ for svc in $services; do
   mtype="$(python3 -c "import json;print(json.load(open('$ROOT/services/$svc/ocm/konfidence-manifest.json'))['type'])")"
   case "$mtype" in
     *.kustomize)
-      # deployment.yaml already references kind-registry:5000/example-app/$svc.
       flux push artifact "oci://$PUSH/$svc-kustomization:$VERSION" \
         --path="$ROOT/services/$svc/manifests" \
-        --source=example-app --revision="$VERSION"
+        --source=example-app --revision="$VERSION" \
+        --insecure-registry
       ;;
     *.helm)
       work="$(mktemp -d)"
       helm package "$ROOT/services/$svc/chart" --destination "$work" >/dev/null
-      helm push "$work/$svc"-chart-*.tgz "oci://$PUSH"
+      helm push "$work/$svc"-chart-*.tgz "oci://$PUSH" --plain-http
       rm -rf "$work"
       ;;
     *)
@@ -47,8 +55,6 @@ for svc in $services; do
 done
 
 echo "==> Pushing OCM components"
-# Reuse docker login credentials; the local registry is anonymous so this is a
-# no-op, but it keeps the config identical to a real registry.
 ocm_cfg="$(mktemp)"
 trap 'rm -f "$ocm_cfg"' EXIT
 cat > "$ocm_cfg" <<EOF
@@ -62,12 +68,16 @@ configurations:
           propagateConsumerIdentity: true
 EOF
 for svc in $services; do
+  # --skip-reference-digest-processing: works around the HTTPS-only digest HEAD
+  # (see BLOCKER above). Konfidence will reject the digest-less descriptor.
   ocm --config "$ocm_cfg" add component-version \
-    --repository "oci::https://$PUSH" \
+    --repository "oci::http://$PUSH" \
     --constructor "$ROOT/services/$svc/ocm/component-constructor.yaml" \
+    --skip-reference-digest-processing \
     --component-version-conflict-policy=replace
 done
 
 echo "==> Done. Artifacts published to the local registry (version $VERSION)."
-echo "    Registry: kind-registry:5000/example-app  (TLS, one name host + cluster)"
+echo "    Push name: localhost:5000/example-app        (flux/docker plain HTTP)"
+echo "    Ref  name: kind-registry:5000/example-app    (baked in; cluster pull)"
 echo "    Next: ./hack/04-apply-konfidence-resources.sh"

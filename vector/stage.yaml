@@ -6,4 +6,4 @@ metadata:
 spec:
   name: example-app
   targetNamespace: example-landscape
-  vector: oci::https://kind-registry:5000/example-app//github.com/konfidence-project/example-app/vector:main
+  vector: oci::http://kind-registry:5000/example-app//github.com/konfidence-project/example-app/vector:main
