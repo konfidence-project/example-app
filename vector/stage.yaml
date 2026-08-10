@@ -1,4 +1,3 @@
-# ${REGISTRY} is replaced at push time.
 apiVersion: konfidence.cloud/v1alpha1
 kind: StageConfiguration
 metadata:
@@ -7,4 +6,4 @@ metadata:
 spec:
   name: example-app
   targetNamespace: example-landscape
-  vector: oci::https://${REGISTRY}//github.com/konfidence-project/example-app/vector:main
+  vector: oci::https://kind-registry:5000/example-app//github.com/konfidence-project/example-app/vector:main

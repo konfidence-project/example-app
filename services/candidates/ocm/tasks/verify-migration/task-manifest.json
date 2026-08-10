@@ -9,7 +9,7 @@
         "containers": [
           {
             "name": "verify-migration",
-            "image": "${REGISTRY}/candidates-migrations:v0.1.0",
+            "image": "kind-registry:5000/example-app/candidates-migrations:v0.1.0",
             "envFrom": [{ "secretRef": { "name": "example-app-db-credentials" } }],
             "command": ["/bin/sh", "-c"],
             "args": [

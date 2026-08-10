@@ -1,23 +1,22 @@
 #!/usr/bin/env bash
 # Apply the initial Konfidence resources for the example app: a VectorTemplate
 # (assembles the vector from the published artifacts) and a StageConfiguration
-# (tells Konfidence to deliver it). Konfidence then creates and reconciles
-# everything else — this script does not deploy the app workloads itself.
+# (tells Konfidence to deliver it). Konfidence then reconciles everything else —
+# this script does not deploy the app workloads itself.
 #
-# Prereqs: a cluster with Konfidence (01) and published artifacts (02).
-#
-#   REGISTRY=ghcr.io/my-org/example-app ./hack/03-apply-konfidence-resources.sh
+# Prereqs: a cluster with Konfidence (01), a local registry (02) and published
+# artifacts (03).
 #
 # Env:
-#   REGISTRY      (required) repository prefix the artifacts were published to
 #   LANDSCAPE_NS  namespace for the Stage + workloads (default example-landscape)
+#   REG_NAME      registry host the artifacts live under (default kind-registry)
 set -euo pipefail
 
-: "${REGISTRY:?set REGISTRY to the repo the artifacts were published to (same as step 02)}"
 LANDSCAPE_NS="${LANDSCAPE_NS:-example-landscape}"
+REG_NAME="${REG_NAME:-kind-registry}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-echo "==> Postgres + credentials"
+echo "==> Namespace + Postgres + credentials"
 kubectl create namespace "$LANDSCAPE_NS" --dry-run=client -o yaml | kubectl apply -f -
 kubectl apply -f "$ROOT/hack/postgres.yaml"
 kubectl -n example-app-db rollout status statefulset/postgres --timeout=120s
@@ -36,24 +35,21 @@ stringData:
   PGSSLMODE: disable
 EOF
 
-# Konfidence pulls artifacts from the registry using an image-pull secret named
-# after the (sanitized) registry host. Create it from your docker login.
-reg_host="${REGISTRY%%/*}"
-reg_domain="${reg_host%%:*}"
-pull_secret="$(printf '%s' "$reg_domain" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g; s/^[^a-z0-9]*//')"
-echo "==> Registry pull secret '$pull_secret'"
-kubectl -n "$LANDSCAPE_NS" create secret generic "$pull_secret" \
+# Registry credentials. The Secret is named after the (sanitized) registry host,
+# because that is the name Konfidence gives the pull Secret it references from the
+# generated Flux OCIRepository/HelmRepository. The VectorTemplate and
+# StageConfiguration also reference it by name for the operator's own OCM fetch.
+# The local registry is anonymous, so dummy credentials suffice; a production
+# deployment puts real registry credentials here.
+echo "==> Registry credentials Secret '$REG_NAME'"
+dockercfg="$(printf '{"auths":{"%s:5000":{"auth":"%s"}}}' "$REG_NAME" "$(printf 'x:x' | base64)")"
+kubectl -n "$LANDSCAPE_NS" create secret generic "$REG_NAME" \
   --type=kubernetes.io/dockerconfigjson \
-  --from-file=.dockerconfigjson="$HOME/.docker/config.json" \
+  --from-literal=.dockerconfigjson="$dockercfg" \
   --dry-run=client -o yaml | kubectl apply -f -
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
-
 echo "==> Applying VectorTemplate"
-sed "s|\${REGISTRY}|$REGISTRY|g; s|example-landscape|$LANDSCAPE_NS|g" \
-  "$ROOT/vector/vectortemplate.yaml" > "$work/vectortemplate.yaml"
-kubectl apply -f "$work/vectortemplate.yaml"
+kubectl apply -f "$ROOT/vector/vectortemplate.yaml"
 
 echo "==> Waiting for the vector to be assembled"
 for _ in $(seq 1 60); do
@@ -66,9 +62,7 @@ done
   kubectl -n "$LANDSCAPE_NS" get vectortemplate example-app -o yaml; exit 1; }
 
 echo "==> Applying StageConfiguration"
-sed "s|\${REGISTRY}|$REGISTRY|g; s|example-landscape|$LANDSCAPE_NS|g" \
-  "$ROOT/vector/stage.yaml" > "$work/stage.yaml"
-kubectl apply -f "$work/stage.yaml"
+kubectl apply -f "$ROOT/vector/stage.yaml"
 
 # Stopgap until deployment-result-based service discovery lands
 # (konfidence-project/konfidence-project#799): interviews calls `candidates` by
