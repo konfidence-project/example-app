@@ -3,9 +3,8 @@ import { VECTOR_ID_HEADER } from "./vectorid.js";
 // The candidates address is taken from CANDIDATES_URL for now. The intended
 // end-state is service discovery via the vector-data-service: evaluate the
 // vector-id to fetch its deployment results and resolve the address from there,
-// so no address is hardcoded. That contract isn't finalized yet
-// (konfidence-project/konfidence-project#799), so until then we use the env var
-// and a stopgap ExternalName alias created at deploy time.
+// so no address is hardcoded. That contract isn't finalized yet, so until then
+// we use the env var and a stopgap ExternalName alias created at deploy time.
 const BASE_URL = process.env.CANDIDATES_URL ?? "http://candidates.example-landscape.svc.cluster.local";
 
 export async function candidateExists(candidateId: string, vectorId: string): Promise<boolean> {
