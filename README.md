@@ -7,6 +7,10 @@ A two-service app delivered through [Konfidence](https://github.com/konfidence-p
 ## What it demonstrates
 
 - **`X-Vector-ID` forwarding** between services — see `services/*/vectorid.*` and `services/interviews/src/candidatesClient.ts`.
+- **East-west service discovery via deployment results** — `interviews` resolves the
+  `candidates` address from the vector-data-service's `deploymentResults` (evaluate the
+  vector-id, read the component's Service host) instead of a hardcoded URL. A Service opts
+  into the deployment results with the `konfidence.cloud/deployment-result` annotation.
 - **Vector-scoped configuration via OpenFeature/OFREP.** Two release toggles:
   - `allow-video-slots` on `interviews` — whether `"video"` is an accepted slot type.
   - `enable-candidate-notes` on `candidates` — whether the `notes` field on a candidate is accepted.
@@ -40,7 +44,7 @@ A two-service app delivered through [Konfidence](https://github.com/konfidence-p
   `hack/01-setup-kind-cluster.sh` to create a local kind cluster with Konfidence.
 - A container registry you can push to and the cluster can pull from.
 
-`hack/03-apply-konfidence-resources.sh` provisions a Postgres for the app; a
+`hack/04-apply-konfidence-resources.sh` provisions a Postgres for the app; a
 production deployment would point `example-app-db-credentials` at a managed
 database instead.
 
@@ -70,12 +74,13 @@ registry you can push to and the cluster can pull from (Artifactory, GHCR, ...).
 export REGISTRY=ghcr.io/my-org/example-app
 
 ./hack/01-setup-kind-cluster.sh              # kind + Konfidence (skip if you have a cluster)
-./hack/02-pipeline.sh                        # build + publish artifacts (imitates CI)
-./hack/03-apply-konfidence-resources.sh      # apply VectorTemplate + StageConfiguration
+./hack/02-setup-registry.sh                  # optional: local plain-HTTP registry wired into kind
+./hack/03-pipeline.sh                        # build + publish artifacts (imitates CI)
+./hack/04-apply-konfidence-resources.sh      # apply VectorTemplate + StageConfiguration
 ./hack/99-teardown.sh                        # remove the app
 ```
 
-Step 02 is what a CI pipeline would run in production; step 03 applies the
+Step 03 is what a CI pipeline would run in production; step 04 applies the
 initial Konfidence resources and Konfidence reconciles the rest — the scripts
 don't deploy the workloads directly.
 
@@ -90,28 +95,66 @@ don't deploy the workloads directly.
 > pull secret even if the registry is anonymous — create it with
 > `kubectl create secret docker-registry <sanitized-host> --docker-server=<host> --docker-username=x --docker-password=x`.
 
+## Verify service-to-service routing
+
+`interviews` calls `candidates` by resolving its address from the vector's
+deployment results — no hard-coded URL. Both Services are `ClusterIP`, so
+port-forward them and drive a request:
+
+```bash
+NS=example-landscape
+
+# The vector id is the name of the deployed vector's data object.
+VID=$(kubectl -n "$NS" get vectordata -o jsonpath='{.items[0].metadata.name}')
+
+# Deployed Service names carry a per-vector suffix; select them by label.
+kubectl -n "$NS" port-forward "svc/$(kubectl -n "$NS" get svc -l app=candidates -o jsonpath='{.items[0].metadata.name}')" 19090:80 &
+kubectl -n "$NS" port-forward "svc/$(kubectl -n "$NS" get svc -l app.kubernetes.io/name=interviews -o jsonpath='{.items[0].metadata.name}')" 18081:80 &
+
+# Create a candidate directly on the candidates service.
+CID=$(curl -s -X POST localhost:19090/candidates \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Ada Lovelace","email":"ada@example.com"}' | jq -r '.id')
+
+# Create an interview. interviews reads the candidates address from the vector's
+# deployment results (X-Vector-ID selects the vector) and calls it.
+curl -i -X POST localhost:18081/interviews \
+  -H 'Content-Type: application/json' \
+  -H "X-Vector-ID: $VID" \
+  -d "{\"candidateId\":\"$CID\",\"slotTime\":\"2026-09-01T10:00:00Z\",\"slotType\":\"onsite\"}"
+```
+
+`201 Created` confirms the east-west call succeeded. With an unknown
+`X-Vector-ID` (no deployment results) the same call returns `502`, showing the
+peer address comes from the vector data, not a hard-coded URL.
+
+For a read-only check, `GET /candidates/{id}` on the interviews service performs
+the same service-to-service call (resolve via deployment results, then fetch):
+
+```bash
+curl -s "http://localhost:18081/candidates/$CID" -H "X-Vector-ID: $VID" | jq .
+```
+
+Both services log the flow verbosely. Watch them with:
+
+```bash
+kubectl -n "$NS" logs -f deploy/"$(kubectl -n "$NS" get deploy -l app.kubernetes.io/name=interviews -o jsonpath='{.items[0].metadata.name}')"
+# interviews: incoming request + vectorId, [discovery] OFREP call + resolved host, [s2s] GET + response status
+kubectl -n "$NS" logs -f deploy/"$(kubectl -n "$NS" get deploy -l app=candidates -o jsonpath='{.items[0].metadata.name}')"
+# candidates: incoming request <method> <path> vectorId=...
+```
+
 ## TODOs / interim workarounds
 
 A few things are implemented as interim workarounds because the platform
 capability they need is still in flight. Each will be simplified once the
 referenced issue lands.
 
-- **Service-to-service discovery is a hardcoded URL** — `interviews` reaches
-  `candidates` via `CANDIDATES_URL` plus an `ExternalName` alias created by
-  `hack/03-apply-konfidence-resources.sh`. The intended design is to resolve the
-  address from the vector-data-service's deployment results (evaluate the
-  vector-id, read `deploymentResults`), so nothing is hardcoded. Blocked on
-  [konfidence-project#799](https://github.com/konfidence-project/konfidence-project/issues/799)
-  (east-west routing via deployment results). That same routing work also gates
-  the rest of the chain today: `VectorAssignment`s only become `Ready` once their
-  HTTPRoute is accepted by a Gateway, and the `VectorData` ConfigMap (and thus
-  live toggle values) is only materialized after the assignments are ready — so
-  until #799 lands, the feature toggles fall back to their defaults.
 - **`X-Vector-ID` header name is configurable, not fixed** — set via
   `VECTOR_ID_HEADER` because the header/propagation contract isn't finalized:
   [konfidence-project#293](https://github.com/konfidence-project/konfidence-project/issues/293)
   (ADR: vector context propagation). Once fixed we can rely on the canonical name.
-- **Artifacts are published with `ocm`, not `kden`** — `hack/02-pipeline.sh` uses
+- **Artifacts are published with `ocm`, not `kden`** — `hack/03-pipeline.sh` uses
   the OCM CLI. `kden artifact push` would be the canonical tool (our descriptors
   already pass `kden artifact validate`), but it currently panics:
   [konfidence/#121](https://github.com/konfidence-project/konfidence/issues/121).

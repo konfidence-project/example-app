@@ -5,4 +5,3 @@ image:
 
 dbCredentialsSecret: example-app-db-credentials
 vectorConfigUrl: http://vector-data-service
-candidatesUrl: http://candidates

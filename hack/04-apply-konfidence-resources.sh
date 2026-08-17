@@ -64,28 +64,6 @@ done
 echo "==> Applying StageConfiguration"
 kubectl apply -f "$ROOT/vector/stage.yaml"
 
-# Stopgap until deployment-result-based service discovery lands
-# (konfidence-project/konfidence-project#799): interviews calls `candidates` by
-# name, but Konfidence deploys the Service with a version suffix.
-echo "==> Aliasing the candidates Service"
-for _ in $(seq 1 60); do
-  target="$(kubectl -n "$LANDSCAPE_NS" get svc -l app=candidates \
-    -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
-  [ -n "$target" ] && break
-  sleep 2
-done
-if [ -n "$target" ]; then
-  kubectl -n "$LANDSCAPE_NS" apply -f - <<EOF
-apiVersion: v1
-kind: Service
-metadata:
-  name: candidates
-spec:
-  type: ExternalName
-  externalName: $target.$LANDSCAPE_NS.svc.cluster.local
-EOF
-fi
-
 echo
 echo "==> Done. Konfidence is reconciling the app. Inspect with:"
 echo "  kubectl -n $LANDSCAPE_NS get vectortemplate,stageconfiguration,stage,vectordeployment,artifactdeployment"

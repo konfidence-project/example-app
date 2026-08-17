@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log"
 	"net/http"
 )
 
@@ -11,7 +12,11 @@ type vectorIDKey struct{}
 
 func withVectorID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.WithValue(r.Context(), vectorIDKey{}, r.Header.Get(vectorIDHeader))
+		vid := r.Header.Get(vectorIDHeader)
+		if r.URL.Path != "/healthz" {
+			log.Printf("candidates: incoming request %s %s vectorId=%q", r.Method, r.URL.Path, vid)
+		}
+		ctx := context.WithValue(r.Context(), vectorIDKey{}, vid)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

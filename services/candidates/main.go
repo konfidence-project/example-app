@@ -100,6 +100,10 @@ func handleGetCandidate(db *DB) http.HandlerFunc {
 		}
 		name, email, notes, err := db.GetCandidate(r.Context(), id)
 		if err != nil {
+			if errors.Is(err, errInvalidID) {
+				writeError(w, http.StatusBadRequest, "invalid candidate id")
+				return
+			}
 			if errors.Is(err, errNotFound) {
 				writeError(w, http.StatusNotFound, "candidate not found")
 				return
