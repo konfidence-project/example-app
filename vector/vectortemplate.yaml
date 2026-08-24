@@ -1,15 +1,14 @@
-# ${REGISTRY} is replaced at push time.
 apiVersion: konfidence.cloud/v1alpha1
 kind: VectorTemplate
 metadata:
   name: example-app
   namespace: example-landscape
 spec:
-  uploadTarget: oci::https://${REGISTRY}//github.com/konfidence-project/example-app/vector:main
+  uploadTarget: oci::http://kind-registry:5000/example-app//github.com/konfidence-project/example-app/vector
 
   components:
-    - name: oci::https://${REGISTRY}//github.com/konfidence-project/example-app/candidates:v0.1.0
-    - name: oci::https://${REGISTRY}//github.com/konfidence-project/example-app/interviews:v0.1.0
+    - name: oci::http://kind-registry:5000/example-app//github.com/konfidence-project/example-app/candidates:v0.1.0
+    - name: oci::http://kind-registry:5000/example-app//github.com/konfidence-project/example-app/interviews:v0.1.0
 
   vectorConfig:
     features:

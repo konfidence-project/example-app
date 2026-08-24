@@ -1,4 +1,3 @@
-# ${REGISTRY} is replaced at push time.
 components:
   - name: github.com/konfidence-project/example-app/candidates
     version: v0.1.0
@@ -12,7 +11,7 @@ components:
         type: kustomize
         access:
           type: ociArtifact
-          imageReference: ${REGISTRY}/candidates-kustomization:v0.1.0
+          imageReference: http://kind-registry:5000/example-app/candidates-kustomization:v0.1.0
 
       - name: konfidence-manifest
         relation: local
@@ -51,4 +50,4 @@ components:
         type: ociImage
         access:
           type: ociArtifact
-          imageReference: ${REGISTRY}/candidates-migrations:v0.1.0
+          imageReference: http://kind-registry:5000/example-app/candidates-migrations:v0.1.0

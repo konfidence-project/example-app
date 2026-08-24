@@ -1,0 +1,40 @@
+# Local docker infrastructure for the example-app quickstart:
+#   - registry : the plain-HTTP OCI registry the cluster pulls from
+#   - kden     : one-shot kden CLI (see hack/kden), run on the kind network so it
+#                can reach kind-registry:5000 to compute artifact digests
+#
+# The kind network is created by kind (01); we attach to it as external.
+name: konfidence-example-local
+
+networks:
+  kind:
+    external: true
+    name: ${REG_NETWORK:-kind}
+
+services:
+  registry:
+    image: registry:2
+    container_name: ${REG_NAME:-kind-registry}
+    restart: always
+    ports:
+      - "127.0.0.1:${REG_PORT:-5000}:5000"
+    networks: [kind]
+
+  # kden CLI, built from the local konfidence checkout. Invoked as a one-shot via
+  # hack/kden (`docker compose run`), not started by `up` (profile: tools).
+  # TODO(public-release): drop the build block and use the published image:
+  #   image: ghcr.io/konfidence-project/kden:<version>
+  kden:
+    image: ${KDEN_IMAGE:-konfidence-kden:local}
+    build:
+      context: ${KONFIDENCE_SRC:-../../konfidence}
+      dockerfile_inline: |
+        FROM golang:1.26 AS build
+        WORKDIR /src
+        COPY . .
+        RUN CGO_ENABLED=0 GOFLAGS=-mod=mod go build -o /kden ./cmd/kden
+        FROM alpine:3.20
+        COPY --from=build /kden /usr/local/bin/kden
+        ENTRYPOINT ["kden"]
+    networks: [kind]
+    profiles: [tools]

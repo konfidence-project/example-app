@@ -1,9 +1,7 @@
-# ${REGISTRY} is replaced at package time by hack/02-pipeline.sh.
 image:
-  repository: ${REGISTRY}/interviews
+  repository: kind-registry:5000/example-app/interviews
   tag: v0.1.0
   pullPolicy: IfNotPresent
 
 dbCredentialsSecret: example-app-db-credentials
 vectorConfigUrl: http://vector-data-service
-candidatesUrl: http://candidates

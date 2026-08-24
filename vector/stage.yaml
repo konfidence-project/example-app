@@ -1,10 +1,9 @@
-# ${REGISTRY} is replaced at push time.
 apiVersion: konfidence.cloud/v1alpha1
-kind: StageConfiguration
+kind: Stage
 metadata:
   name: example-app
   namespace: example-landscape
 spec:
-  name: example-app
-  targetNamespace: example-landscape
-  vector: oci::https://${REGISTRY}//github.com/konfidence-project/example-app/vector:main
+  # The concrete assembled vector, taken from the VectorTemplate's
+  # status.latestVector. 04-apply-konfidence-resources.sh substitutes it.
+  vector: __VECTOR__

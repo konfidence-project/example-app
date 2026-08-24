@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# kden wrapper: runs kden in a container on the kind network, because the local
+# registry (kind-registry:5000) is only resolvable there — not on the host — and
+# kden must reach it to compute artifact digests. Also: no host kden CLI needed.
+# The kden service/build is defined in hack/docker-compose.yaml.
+set -euo pipefail
+
+COMPOSE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/docker-compose.yaml"
+exec docker compose -f "$COMPOSE" run --rm \
+  --volume "$PWD:/work" --workdir /work \
+  kden "$@"
