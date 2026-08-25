@@ -30,8 +30,6 @@ spec:
           env:
             - name: VECTOR_CONFIG_URL
               value: {{ .Values.vectorConfigUrl }}
-            - name: CANDIDATES_URL
-              value: {{ .Values.candidatesUrl }}
           readinessProbe:
             httpGet:
               path: /healthz

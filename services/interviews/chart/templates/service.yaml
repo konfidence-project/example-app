@@ -5,6 +5,8 @@ metadata:
   labels:
     app.kubernetes.io/name: interviews
     app.kubernetes.io/instance: {{ .Release.Name }}
+  annotations:
+    konfidence.cloud/deployment-result: interviews
 spec:
   selector:
     app.kubernetes.io/name: interviews

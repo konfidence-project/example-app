@@ -1,0 +1,8 @@
+# Project owns a dedicated namespace (kden-p-<name>) that holds this app's
+# VectorTemplate and promotion config. Cluster-scoped.
+apiVersion: konfidence.cloud/v1alpha1
+kind: Project
+metadata:
+  name: example-app
+spec:
+  displayName: Example App

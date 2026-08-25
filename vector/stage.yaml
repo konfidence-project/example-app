@@ -1,10 +1,9 @@
-# ${REGISTRY} is replaced at push time.
+# The initial (empty) vector is filled by the VectorPromotionConfig, which
+# promotes the VectorTemplate's assembled vector into this Stage. Apply into the
+# managed (landscape) namespace.
 apiVersion: konfidence.cloud/v1alpha1
-kind: StageConfiguration
+kind: Stage
 metadata:
   name: example-app
-  namespace: example-landscape
 spec:
-  name: example-app
-  targetNamespace: example-landscape
-  vector: oci::https://${REGISTRY}//github.com/konfidence-project/example-app/vector:main
+  vector: ""

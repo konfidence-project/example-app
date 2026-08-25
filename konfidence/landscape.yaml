@@ -1,0 +1,9 @@
+# Landscape lives in the project namespace and owns a managed namespace
+# (kden-l-<name>) where the Stage, vector-data-service and workloads run.
+# Apply into the project namespace: kubectl -n <project-ns> apply -f landscape.yaml
+apiVersion: konfidence.cloud/v1alpha1
+kind: Landscape
+metadata:
+  name: example-app
+spec:
+  displayName: Example App

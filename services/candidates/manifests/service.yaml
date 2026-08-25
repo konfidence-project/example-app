@@ -4,6 +4,8 @@ metadata:
   name: candidates
   labels:
     app: candidates
+  annotations:
+    konfidence.cloud/deployment-result: candidates
 spec:
   selector:
     app: candidates

@@ -1,0 +1,14 @@
+# Promotes the vector assembled by the VectorTemplate into the Stage. A
+# VectorTemplate source needs no approval. Apply into the project namespace.
+apiVersion: konfidence.cloud/v1alpha1
+kind: VectorPromotionConfig
+metadata:
+  name: example-app
+spec:
+  source:
+    kind: VectorTemplate
+    name: example-app
+  target:
+    kind: Stage
+    name: example-app
+    landscape: example-app
