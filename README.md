@@ -85,7 +85,7 @@ export REGISTRY_USERNAME=my-user
 export REGISTRY_PASSWORD=my-token
 
 ./hack/01-setup-kind-cluster.sh              # kind + Konfidence + Project/Landscape/credentials/Postgres
-./hack/02-pipeline.sh                        # build + publish artifacts (imitates CI)
+./hack/02-pipeline.sh                        # build + publish all service artifacts
 ./hack/03-apply-konfidence-resources.sh      # VectorTemplate + Stage + promotion
 ./hack/99-teardown.sh                        # remove the app
 ```
@@ -117,7 +117,7 @@ step 01 creates it from `REGISTRY_USERNAME`/`REGISTRY_PASSWORD` in the three
 namespaces that need it (`konfidence-system`, the project ns, the managed ns) and
 maps the registry host to it via a `flux-deployer-configuration` ConfigMap.
 
-Step 02 is what a CI pipeline would run in production. Step 03 applies the
+Step 02 calls each service's pipeline script. Step 03 applies the
 *runtime* resources — a VectorTemplate, an empty Stage, and a
 VectorPromotionConfig that promotes the assembled vector into the Stage.
 Konfidence reconciles the rest; the scripts don't deploy the workloads directly.
