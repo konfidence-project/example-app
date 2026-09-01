@@ -40,7 +40,7 @@ A two-service app delivered through [Konfidence](https://github.com/konfidence-p
   `hack/01-setup-kind-cluster.sh` to create a local kind cluster with Konfidence.
 - A container registry you can push to and the cluster can pull from.
 
-`hack/03-apply-konfidence-resources.sh` provisions a Postgres for the app; a
+`hack/01-setup-kind-cluster.sh` provisions a Postgres for the app; a
 production deployment would point `example-app-db-credentials` at a managed
 database instead.
 
@@ -51,9 +51,14 @@ example-app/
 ├── services/
 │   ├── candidates/   # Go
 │   └── interviews/   # TypeScript / Node
+├── konfidence/
+│   ├── project.yaml
+│   ├── landscape.yaml
+│   └── registry-credentials.example.yaml
 ├── vector/
 │   ├── vectortemplate.yaml
-│   └── stage.yaml
+│   ├── stage.yaml
+│   └── vectorpromotionconfig.yaml
 ├── LICENSE, LICENSES/, REUSE.toml
 └── README.md
 ```
@@ -63,58 +68,73 @@ Each service directory holds its own source, Dockerfile, deployment manifests
 
 ## Deploy it
 
-You need a Kubernetes cluster with Konfidence installed and a container
+You need a Kubernetes cluster with Konfidence installed and an HTTPS OCI
 registry you can push to and the cluster can pull from (Artifactory, GHCR, ...).
 
-```bash
-export REGISTRY=ghcr.io/my-org/example-app
+Export three variables before running the scripts:
 
-./hack/01-setup-kind-cluster.sh              # kind + Konfidence (skip if you have a cluster)
+| Variable            | What it is                                                                 |
+| ------------------- | -------------------------------------------------------------------------- |
+| `REGISTRY`          | `host/org/repo` prefix the artifacts are published under. **No** `https://`, no trailing `/`. The path must be one you can push to. |
+| `REGISTRY_USERNAME` | User for that registry. Step 01 prompts if unset.                          |
+| `REGISTRY_PASSWORD` | Password or access token for that user. Step 01 prompts (silently) if unset. |
+
+```bash
+export REGISTRY=my-registry.example.com/my-org/example-app
+export REGISTRY_USERNAME=my-user
+export REGISTRY_PASSWORD=my-token
+
+./hack/01-setup-kind-cluster.sh              # kind + Konfidence + Project/Landscape/credentials/Postgres
 ./hack/02-pipeline.sh                        # build + publish artifacts (imitates CI)
-./hack/03-apply-konfidence-resources.sh      # apply VectorTemplate + StageConfiguration
+./hack/03-apply-konfidence-resources.sh      # VectorTemplate + Stage + promotion
 ./hack/99-teardown.sh                        # remove the app
 ```
 
-Step 02 is what a CI pipeline would run in production; step 03 applies the
-initial Konfidence resources and Konfidence reconciles the rest — the scripts
-don't deploy the workloads directly.
+The same `REGISTRY` value is used by all three steps. The scripts publish and
+pull images and OCM artifacts under it, e.g. `$REGISTRY/candidates:v0.1.0` and
+`$REGISTRY//github.com/konfidence-project/example-app/vector`.
+
+Generic `REGISTRY` examples:
+
+| Registry              | `REGISTRY` value                                  |
+| --------------------- | ------------------------------------------------- |
+| GitHub Container Reg. | `ghcr.io/my-org/example-app`                      |
+| Docker Hub            | `docker.io/my-user/example-app`                   |
+| Artifactory           | `my-company.jfrog.io/my-repo/example-app`         |
+| Google Artifact Reg.  | `europe-docker.pkg.dev/my-project/my-repo/example-app` |
+| AWS ECR               | `123456789.dkr.ecr.eu-central-1.amazonaws.com/example-app` |
+
+> While the required Konfidence fixes are unreleased, run
+> `./hack/01_temp_from_local.sh` instead of `01-setup-kind-cluster.sh` — it
+> builds Konfidence from sibling checkouts (`../konfidence`, `../kubernetes-landscape-orchestrator`).
+
+Step 01 sets up the *static* resources — a Project (its own `kden-p-*`
+namespace), a Landscape (a managed `kden-l-*` namespace) and the app's Postgres —
+and creates the registry pull credentials. The cluster pulls artifacts and images
+using a single
+`registry-credentials` secret (see `konfidence/registry-credentials.example.yaml`);
+step 01 creates it from `REGISTRY_USERNAME`/`REGISTRY_PASSWORD` in the three
+namespaces that need it (`konfidence-system`, the project ns, the managed ns) and
+maps the registry host to it via a `flux-deployer-configuration` ConfigMap.
+
+Step 02 is what a CI pipeline would run in production. Step 03 applies the
+*runtime* resources — a VectorTemplate, an empty Stage, and a
+VectorPromotionConfig that promotes the assembled vector into the Stage.
+Konfidence reconciles the rest; the scripts don't deploy the workloads directly.
 
 > No cluster yet? `./hack/01-setup-kind-cluster.sh` spins up a kind cluster and
 > installs Konfidence using the official quickstart installer.
->
-> No registry handy? Run a local one and a kind cluster — see the
-> [kind local registry guide](https://kind.sigs.k8s.io/docs/user/local-registry/).
-> A local registry must be served over TLS (or configured as insecure) so the
-> OCM CLI, Flux, and kubelet can all use it. For the Helm-deployed service,
-> Flux's helm-controller also needs an auth entry for the registry host in the
-> pull secret even if the registry is anonymous — create it with
-> `kubectl create secret docker-registry <sanitized-host> --docker-server=<host> --docker-username=x --docker-password=x`.
 
-## TODOs / interim workarounds
+## Notes
 
-A few things are implemented as interim workarounds because the platform
-capability they need is still in flight. Each will be simplified once the
-corresponding platform work lands.
-
-- **Service-to-service discovery is a hardcoded URL** — `interviews` reaches
-  `candidates` via `CANDIDATES_URL` plus an `ExternalName` alias created by
-  `hack/03-apply-konfidence-resources.sh`. The intended design is to resolve the
-  address from the vector-data-service's deployment results (evaluate the
-  vector-id, read `deploymentResults`), so nothing is hardcoded. This depends on
-  east-west routing via deployment results. That same routing work also gates
-  the rest of the chain today: `VectorAssignment`s only become `Ready` once their
-  HTTPRoute is accepted by a Gateway, and the `VectorData` ConfigMap (and thus
-  live toggle values) is only materialized after the assignments are ready — so
-  until east-west routing via deployment results is available, the feature
-  toggles fall back to their defaults.
+- **Service-to-service discovery** — `interviews` resolves the `candidates`
+  address from the vector's deployment results (`X-Vector-ID` →
+  vector-data-service), so no address is hardcoded. Needs the platform's
+  vector-data-service (feature toggles read from it too).
 - **`X-Vector-ID` header name is configurable, not fixed** — set via
-  `VECTOR_ID_HEADER` because the vector context propagation contract isn't
-  finalized. Once fixed we can rely on the canonical name.
-- **Artifacts are published with `ocm`, not `kden`** — `hack/02-pipeline.sh` uses
-  the OCM CLI. `kden artifact push` would be the canonical tool (our descriptors
-  already pass `kden artifact validate`), but it currently panics:
-  [konfidence/#121](https://github.com/konfidence-project/konfidence/issues/121).
-  Switch the pipeline to `kden` once fixed.
+  `VECTOR_ID_HEADER` because the propagation contract isn't finalized:
+  [konfidence-project#293](https://github.com/konfidence-project/konfidence-project/issues/293).
+  Once fixed we can rely on the canonical name.
 
 ## Concepts, at a glance
 

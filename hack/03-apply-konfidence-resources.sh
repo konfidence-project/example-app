@@ -1,98 +1,49 @@
 #!/usr/bin/env bash
-# Apply the initial Konfidence resources for the example app: a VectorTemplate
-# (assembles the vector from the published artifacts) and a StageConfiguration
-# (tells Konfidence to deliver it). Konfidence then creates and reconciles
-# everything else — this script does not deploy the app workloads itself.
+# Apply the runtime Konfidence resources for the example app. The Project,
+# Landscape, credentials and vector-data-service are set up in step 01; this
+# step deploys the app:
+#   VectorTemplate         assembles the vector from the published artifacts
+#   Stage (empty)          target the promotion fills in
+#   VectorPromotionConfig  promotes the template's vector into the Stage
+# Konfidence then reconciles the deployment.
 #
-# Prereqs: a cluster with Konfidence (01) and published artifacts (02).
-#
-#   REGISTRY=ghcr.io/my-org/example-app ./hack/03-apply-konfidence-resources.sh
-#
-# Env:
-#   REGISTRY      (required) repository prefix the artifacts were published to
-#   LANDSCAPE_NS  namespace for the Stage + workloads (default example-landscape)
+#   REGISTRY=my-registry.example.com/my-org/example-app ./hack/03-apply-konfidence-resources.sh
 set -euo pipefail
 
 : "${REGISTRY:?set REGISTRY to the repo the artifacts were published to (same as step 02)}"
-LANDSCAPE_NS="${LANDSCAPE_NS:-example-landscape}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT/hack/_common.sh"
 
-echo "==> Postgres + credentials"
-kubectl create namespace "$LANDSCAPE_NS" --dry-run=client -o yaml | kubectl apply -f -
-kubectl apply -f "$ROOT/hack/postgres.yaml"
-kubectl -n example-app-db rollout status statefulset/postgres --timeout=120s
-kubectl -n "$LANDSCAPE_NS" apply -f - <<EOF
-apiVersion: v1
-kind: Secret
-metadata:
-  name: example-app-db-credentials
-type: Opaque
-stringData:
-  PGHOST: postgres.example-app-db.svc.cluster.local
-  PGPORT: "5432"
-  PGUSER: example
-  PGPASSWORD: example
-  PGDATABASE: example
-  PGSSLMODE: disable
-EOF
+project_ns="$(kubectl get project example-app -o jsonpath='{.status.namespace}')"
+managed_ns="$(kubectl -n "$project_ns" get landscape example-app -o jsonpath='{.status.namespace}')"
+[ -n "$project_ns" ] && [ -n "$managed_ns" ] || {
+  echo "Project/Landscape not ready — run ./hack/01-setup-kind-cluster.sh first" >&2; exit 1; }
+echo "==> project ns: $project_ns   managed ns: $managed_ns"
 
-# Konfidence pulls artifacts from the registry using an image-pull secret named
-# after the (sanitized) registry host. Create it from your docker login.
-reg_host="${REGISTRY%%/*}"
-reg_domain="${reg_host%%:*}"
-pull_secret="$(printf '%s' "$reg_domain" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g; s/^[^a-z0-9]*//')"
-echo "==> Registry pull secret '$pull_secret'"
-kubectl -n "$LANDSCAPE_NS" create secret generic "$pull_secret" \
-  --type=kubernetes.io/dockerconfigjson \
-  --from-file=.dockerconfigjson="$HOME/.docker/config.json" \
-  --dry-run=client -o yaml | kubectl apply -f -
+echo "==> VectorTemplate (project ns)"
+sed "s|\${REGISTRY}|$REGISTRY|g" "$ROOT/vector/vectortemplate.yaml" \
+  | kubectl -n "$project_ns" apply -f -
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
-
-echo "==> Applying VectorTemplate"
-sed "s|\${REGISTRY}|$REGISTRY|g; s|example-landscape|$LANDSCAPE_NS|g" \
-  "$ROOT/vector/vectortemplate.yaml" > "$work/vectortemplate.yaml"
-kubectl apply -f "$work/vectortemplate.yaml"
-
-echo "==> Waiting for the vector to be assembled"
-for _ in $(seq 1 60); do
-  ready="$(kubectl -n "$LANDSCAPE_NS" get vectortemplate example-app \
-    -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || true)"
-  [ "$ready" = "True" ] && break
-  sleep 2
-done
-[ "$ready" = "True" ] || { echo "VectorTemplate did not become Ready"; \
-  kubectl -n "$LANDSCAPE_NS" get vectortemplate example-app -o yaml; exit 1; }
-
-echo "==> Applying StageConfiguration"
-sed "s|\${REGISTRY}|$REGISTRY|g; s|example-landscape|$LANDSCAPE_NS|g" \
-  "$ROOT/vector/stage.yaml" > "$work/stage.yaml"
-kubectl apply -f "$work/stage.yaml"
-
-# Stopgap until deployment-result-based service discovery lands: interviews
-# calls `candidates` by name, but Konfidence deploys the Service with a version
-# suffix.
-echo "==> Aliasing the candidates Service"
-for _ in $(seq 1 60); do
-  target="$(kubectl -n "$LANDSCAPE_NS" get svc -l app=candidates \
-    -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
-  [ -n "$target" ] && break
-  sleep 2
-done
-if [ -n "$target" ]; then
-  kubectl -n "$LANDSCAPE_NS" apply -f - <<EOF
-apiVersion: v1
-kind: Service
-metadata:
-  name: candidates
-spec:
-  type: ExternalName
-  externalName: $target.$LANDSCAPE_NS.svc.cluster.local
-EOF
-fi
+echo "==> Stage (managed ns) + VectorPromotionConfig (project ns)"
+kubectl -n "$managed_ns" apply -f "$ROOT/vector/stage.yaml"
+kubectl -n "$project_ns" apply -f "$ROOT/vector/vectorpromotionconfig.yaml"
 
 echo
-echo "==> Done. Konfidence is reconciling the app. Inspect with:"
-echo "  kubectl -n $LANDSCAPE_NS get vectortemplate,stageconfiguration,stage,vectordeployment,artifactdeployment"
-echo "  kubectl -n $LANDSCAPE_NS get pods"
+echo "==> Done. Konfidence assembles the vector, promotes it into the Stage, and deploys. Inspect with:"
+echo "  kubectl -n $project_ns get vectortemplate,vectorpromotion"
+echo "  kubectl -n $managed_ns get stage,vectordeployment,artifactdeployment,vectormigration,pods"
+echo
+echo "==> Once the pods are Running, try service-to-service (interviews -> candidates):"
+cat <<EOS
+  NS=$managed_ns
+  VID=\$(kubectl -n "\$NS" get vectordata -o jsonpath='{.items[0].metadata.name}')
+  CA=\$(kubectl -n "\$NS" get svc -l app=candidates -o jsonpath='{.items[0].metadata.name}')
+  IV=\$(kubectl -n "\$NS" get svc -l app.kubernetes.io/name=interviews -o jsonpath='{.items[0].metadata.name}')
+  kubectl -n "\$NS" port-forward "svc/\$CA" 8081:80 >/dev/null 2>&1 &
+  kubectl -n "\$NS" port-forward "svc/\$IV" 8080:80 >/dev/null 2>&1 &
+  sleep 3
+  CID=\$(curl -s -X POST localhost:8081/candidates -H 'Content-Type: application/json' \\
+    -H "X-Vector-ID: \$VID" -d '{"name":"Ada Lovelace","email":"ada@example.com"}' \\
+    | python3 -c 'import sys,json;print(json.load(sys.stdin)["id"])')
+  curl -s -H "X-Vector-ID: \$VID" "localhost:8080/candidates/\$CID"; echo
+EOS

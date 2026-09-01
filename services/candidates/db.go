@@ -12,6 +12,7 @@ import (
 )
 
 var errNotFound = errors.New("not found")
+var errInvalidID = errors.New("invalid id")
 
 type DB struct {
 	pool *pgxpool.Pool
@@ -54,6 +55,9 @@ func (d *DB) InsertCandidate(ctx context.Context, name, email string, notes *str
 }
 
 func (d *DB) GetCandidate(ctx context.Context, id string) (name, email string, notes *string, err error) {
+	if _, perr := uuid.Parse(id); perr != nil {
+		return "", "", nil, errInvalidID
+	}
 	err = d.pool.QueryRow(ctx,
 		`SELECT name, email, notes FROM candidates WHERE id = $1`, id,
 	).Scan(&name, &email, &notes)

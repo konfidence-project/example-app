@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
-# Remove the example app from the cluster (leaves Konfidence and Postgres data).
-#
-# Env:
-#   LANDSCAPE_NS  namespace the app was deployed into (default example-landscape)
+# Remove the example app from the cluster: deletes the Landscape (its managed
+# namespace, Stage and workloads), the Project (its namespace, VectorTemplate
+# and promotion config) and the app database. Leaves Konfidence installed.
 set -euo pipefail
 
-LANDSCAPE_NS="${LANDSCAPE_NS:-example-landscape}"
+project_ns="$(kubectl get project example-app -o jsonpath='{.status.namespace}' 2>/dev/null || true)"
 
-kubectl -n "$LANDSCAPE_NS" delete stageconfiguration,vectortemplate example-app --ignore-not-found
-kubectl -n "$LANDSCAPE_NS" delete service candidates --ignore-not-found
+# Landscape lives in the project namespace and owns the managed namespace.
+if [ -n "$project_ns" ]; then
+  kubectl -n "$project_ns" delete landscape example-app --ignore-not-found --wait
+fi
+# Project owns its namespace (VectorTemplate + VectorPromotionConfig).
+kubectl delete project example-app --ignore-not-found --wait
+# Out-of-band app database.
 kubectl delete namespace example-app-db --ignore-not-found
 
 echo "Done."
