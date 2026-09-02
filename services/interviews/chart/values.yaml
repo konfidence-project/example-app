@@ -1,7 +1,7 @@
-# ${REGISTRY} is replaced at package time by hack/02-pipeline.sh.
+# ${REGISTRY} and ${VERSION} are substituted at package time by the build script.
 image:
   repository: ${REGISTRY}/interviews
-  tag: v0.1.0
+  tag: ${VERSION}
   pullPolicy: IfNotPresent
 
 dbCredentialsSecret: example-app-db-credentials

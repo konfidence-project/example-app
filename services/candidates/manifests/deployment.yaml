@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: candidates
-          image: candidates:v0.1.0
+          image: candidates
           ports:
             - name: http
               containerPort: 8080

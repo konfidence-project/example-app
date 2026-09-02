@@ -1,0 +1,59 @@
+name: Publish
+
+# Manually triggered publish of all example-app artifacts (images, kustomize/helm
+# deployment artifacts, OCM components) to the project's GHCR registry. Uses the
+# same hack/02-pipeline.sh that runs locally, driven by REGISTRY + VERSION.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io/${{ github.repository }}   # ghcr.io/konfidence-project/example-app
+  FLUX_VERSION: 2.9.5
+  # The kden CLI is not yet released with a working `artifact push` (the
+  # 0.0.1-alpha.1 binary panics), so build it from source.
+  # TODO: switch to a released kden binary once one ships with the fix.
+  KDEN_REF: 5e9b6bef36b3f444046bc87162b1653b3110bbca
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute version
+        id: ver
+        run: echo "version=0.1.0-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: azure/setup-helm@v4
+
+      - name: Install Flux CLI
+        uses: fluxcd/flux2/action@main
+        with:
+          version: ${{ env.FLUX_VERSION }}
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Install kden CLI
+        run: |
+          go install "github.com/konfidence-project/konfidence/cmd/kden@${KDEN_REF}"
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Publish artifacts
+        env:
+          REGISTRY: ${{ env.REGISTRY }}
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: ./hack/02-pipeline.sh

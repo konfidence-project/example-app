@@ -9,7 +9,7 @@
         "containers": [
           {
             "name": "verify-migration",
-            "image": "${REGISTRY}/interviews-migrations:v0.1.0",
+            "image": "${REGISTRY}/interviews-migrations:${VERSION}",
             "envFrom": [{ "secretRef": { "name": "example-app-db-credentials" } }],
             "command": ["/bin/sh", "-c"],
             "args": [

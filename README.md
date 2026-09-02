@@ -91,8 +91,9 @@ export REGISTRY_PASSWORD=my-token
 ```
 
 The same `REGISTRY` value is used by all three steps. The scripts publish and
-pull images and OCM artifacts under it, e.g. `$REGISTRY/candidates:v0.1.0` and
-`$REGISTRY//github.com/konfidence-project/example-app/vector`.
+pull images and OCM artifacts under it, e.g. `$REGISTRY/candidates:$VERSION` and
+`$REGISTRY//github.com/konfidence-project/example-app/vector`. `VERSION` is
+optional and defaults to a unique `0.1.0-<shortsha>` (see [Publishing](#publishing)).
 
 Generic `REGISTRY` examples:
 
@@ -117,13 +118,41 @@ step 01 creates it from `REGISTRY_USERNAME`/`REGISTRY_PASSWORD` in the three
 namespaces that need it (`konfidence-system`, the project ns, the managed ns) and
 maps the registry host to it via a `flux-deployer-configuration` ConfigMap.
 
-Step 02 is what a CI pipeline would run in production. Step 03 applies the
-*runtime* resources — a VectorTemplate, an empty Stage, and a
+Step 02 publishes the artifacts (see [Publishing](#publishing)). Step 03 applies
+the *runtime* resources — a VectorTemplate, an empty Stage, and a
 VectorPromotionConfig that promotes the assembled vector into the Stage.
 Konfidence reconciles the rest; the scripts don't deploy the workloads directly.
 
 > No cluster yet? `./hack/01-setup-kind-cluster.sh` spins up a kind cluster and
 > installs Konfidence using the official quickstart installer.
+
+## Publishing
+
+Step 02 is the publish pipeline — the same thing CI runs. It is driven by two
+variables and nothing else:
+
+| Variable   | Default | Meaning |
+| ---------- | ------- | ------- |
+| `REGISTRY` | — (required) | OCI repo prefix to publish under, e.g. `ghcr.io/my-org/example-app`. |
+| `VERSION`  | `0.1.0-<shortsha>` | Artifact version for images, chart, kustomization and OCM components. A unique value keeps re-runs idempotent (`kden` has no overwrite). |
+
+`hack/02-pipeline.sh` is a thin orchestrator that runs each service's
+`services/<svc>/build-and-push.sh`. Each builds and pushes the service +
+migration images, publishes the Kustomize bundle (`flux push artifact`) or Helm
+chart (`helm push`), and pushes the OCM component with `kden artifact push`.
+Credentials come from your `docker login` (a temporary OCM config points at
+`~/.docker/config.json`; `~/.ocmconfig` is left untouched).
+
+Run it against your own registry:
+
+```bash
+docker login my-registry.example.com
+REGISTRY=my-registry.example.com/my-org/example-app ./hack/02-pipeline.sh
+```
+
+Or in CI: the `Publish` workflow (`.github/workflows/publish.yaml`,
+`workflow_dispatch`) publishes to `ghcr.io/<owner>/example-app` using the repo's
+`GITHUB_TOKEN`, with `VERSION=0.1.0-<shortsha>`.
 
 ## Notes
 
