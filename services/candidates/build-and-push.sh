@@ -29,5 +29,6 @@ flux push artifact "oci://ghcr.io/konfidence-project/candidates-kustomization:v0
 # to deploy a multi-service application with Konfidence.
 echo "==> Pushing candidates OCM component"
 (
+  # TODO kden CLI does not have a --overwrite flag at the moment, pushing same component version again fails
   cd "$ROOT/ocm" && kden artifact push --registry "https://ghcr.io/konfidence-project/artifacts" --file "$ROOT/ocm/component-constructor.yaml"
 )

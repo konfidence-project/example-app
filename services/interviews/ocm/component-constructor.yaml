@@ -1,6 +1,5 @@
-# ${REGISTRY} is replaced at push time.
 components:
-  - name: github.com/konfidence-project/example-app/interviews
+  - name: github.com/konfidence-project/interviews
     version: v0.1.0
     provider:
       name: konfidence-project
@@ -12,7 +11,7 @@ components:
         type: helmChart
         access:
           type: ociArtifact
-          imageReference: ${REGISTRY}/interviews-chart:0.1.0
+          imageReference: ghcr.io/konfidence-project/interviews-chart:0.1.0
 
       - name: konfidence-manifest
         relation: local
@@ -51,4 +50,4 @@ components:
         type: ociImage
         access:
           type: ociArtifact
-          imageReference: ${REGISTRY}/interviews-migrations:v0.1.0
+          imageReference: ghcr.io/konfidence-project/interviews-migrations:v0.1.0

@@ -10,6 +10,9 @@ node_modules/
 dist/
 npm-debug.log*
 
+# Helm packages
+/services/interviews/dist/
+
 # IDE
 .idea/
 .vscode/
