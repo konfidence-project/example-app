@@ -86,7 +86,7 @@ export REGISTRY_PASSWORD=my-token
 ./hack/01-setup-kind-cluster.sh              # kind + Konfidence + Project/Landscape/credentials/Postgres
 ./hack/02-pipeline.sh                        # build + publish artifacts (imitates CI)
 ./hack/03-apply-konfidence-resources.sh      # VectorTemplate + Stage + promotion
-./hack/99-teardown.sh                        # remove the app
+./hack/99-teardown.sh                        # delete the kind cluster
 ```
 
 The same `REGISTRY` value is used by all three steps. The scripts publish and
