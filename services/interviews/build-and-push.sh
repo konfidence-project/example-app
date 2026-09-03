@@ -10,30 +10,33 @@ export REGISTRY VERSION   # kden expands ${REGISTRY}/${VERSION} in the construct
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SVC=interviews
 
+# Generated manifests land in a gitignored dist/ so they can be inspected after a run.
+DIST="$ROOT/dist"
+rm -rf "$DIST"
+mkdir -p "$DIST"
+
 echo "==> [$SVC] building and pushing images"
 docker build -t "$REGISTRY/$SVC:$VERSION" "$ROOT"
 docker build -t "$REGISTRY/$SVC-migrations:$VERSION" "$ROOT/migrations"
 docker push "$REGISTRY/$SVC:$VERSION"
 docker push "$REGISTRY/$SVC-migrations:$VERSION"
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
-
-# Flux deploys the Helm chart, so publish it as an OCI chart. Chart version is
-# set from VERSION here; the image ref in values.yaml is filled from ${REGISTRY}/
-# ${VERSION} so the committed chart stays registry/version-agnostic.
+# Flux deploys the Helm chart, so publish it as an OCI chart. The chart/app
+# version come from VERSION (the image tag defaults to .Chart.AppVersion); only
+# the registry is filled into values.yaml, so the committed chart stays
+# registry/version-agnostic.
 echo "==> [$SVC] publishing Helm chart"
-cp -r "$ROOT/chart" "$work/chart"
-sed -i "s|\${REGISTRY}|$REGISTRY|g; s|\${VERSION}|$VERSION|g" "$work/chart/values.yaml"
-helm package "$work/chart" --version "$VERSION" --app-version "$VERSION" --destination "$work" >/dev/null
-helm push "$work/$SVC-chart-$VERSION.tgz" "oci://$REGISTRY"
+cp -r "$ROOT/chart" "$DIST/chart"
+sed -i "s|\${REGISTRY}|$REGISTRY|g" "$DIST/chart/values.yaml"
+helm package "$DIST/chart" --version "$VERSION" --app-version "$VERSION" --destination "$DIST" >/dev/null
+helm push "$DIST/$SVC-chart-$VERSION.tgz" "oci://$REGISTRY"
 
 # The OCM component ties the chart, migration tasks and images into one versioned
 # Konfidence artifact. kden expands ${REGISTRY}/${VERSION} in the constructor
 # itself (os.Expand/os.Getenv), but NOT in the file-input task manifests, so
 # substitute those (leaves runtime args like $PGUSER untouched).
 echo "==> [$SVC] pushing OCM component"
-cp -r "$ROOT/ocm" "$work/ocm"
-find "$work/ocm/tasks" -type f -name 'task-manifest.json' -print0 \
+cp -r "$ROOT/ocm" "$DIST/ocm"
+find "$DIST/ocm/tasks" -type f -name 'task-manifest.json' -print0 \
   | xargs -0 sed -i "s|\${REGISTRY}|$REGISTRY|g; s|\${VERSION}|$VERSION|g"
-( cd "$work/ocm" && kden artifact push --registry "https://$REGISTRY" --file component-constructor.yaml )
+( cd "$DIST/ocm" && kden artifact push --registry "https://$REGISTRY" --file component-constructor.yaml )

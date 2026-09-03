@@ -54,8 +54,7 @@ example-app/
 ├── konfidence/
 │   ├── project.yaml
 │   ├── landscape.yaml
-│   └── registry-credentials.example.yaml
-├── vector/
+│   ├── registry-credentials.example.yaml
 │   ├── vectortemplate.yaml
 │   ├── stage.yaml
 │   └── vectorpromotionconfig.yaml
@@ -172,8 +171,8 @@ Or in CI: the `Publish` workflow (`.github/workflows/publish.yaml`,
 | OCM component | `services/*/ocm/component-constructor.yaml` |
 | Deployer manifest | `services/*/ocm/konfidence-manifest.json` (kustomize for candidates, helm for interviews) |
 | Migration task | `services/*/ocm/tasks/*/task-manifest.json` |
-| Vector assembly | `vector/vectortemplate.yaml` |
-| Vector-scoped config | `vector/vectortemplate.yaml` → `spec.vectorConfig.features` |
+| Vector assembly | `konfidence/vectortemplate.yaml` |
+| Vector-scoped config | `konfidence/vectortemplate.yaml` → `spec.vectorConfig.features` |
 | OpenFeature client | `services/candidates/openfeature.go`, `services/interviews/src/openfeature.ts` |
 | `X-Vector-ID` forwarding | `services/candidates/vectorid.go`, `services/interviews/src/{vectorid,candidatesClient}.ts` |
 

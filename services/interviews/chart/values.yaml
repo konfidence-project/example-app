@@ -1,7 +1,9 @@
-# ${REGISTRY} and ${VERSION} are substituted at package time by the build script.
+# ${REGISTRY} is substituted at package time by the build script.
+# image.tag is intentionally empty: it defaults to .Chart.AppVersion, which the
+# build script sets from VERSION via `helm package --app-version`.
 image:
   repository: ${REGISTRY}/interviews
-  tag: ${VERSION}
+  tag: ""
   pullPolicy: IfNotPresent
 
 dbCredentialsSecret: example-app-db-credentials

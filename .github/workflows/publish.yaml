@@ -38,6 +38,11 @@ jobs:
 
       - uses: azure/setup-helm@v4
 
+      - name: Install Kustomize
+        uses: imranismail/setup-kustomize@v2
+        with:
+          kustomize-version: 5.4.3
+
       - name: Install Flux CLI
         uses: fluxcd/flux2/action@main
         with:
