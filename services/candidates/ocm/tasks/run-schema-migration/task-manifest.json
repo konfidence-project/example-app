@@ -9,7 +9,7 @@
         "containers": [
           {
             "name": "run-migration",
-            "image": "${REGISTRY}/candidates-migrations:v0.1.0",
+            "image": "${REGISTRY}/candidates-migrations:${VERSION}",
             "envFrom": [{ "secretRef": { "name": "example-app-db-credentials" } }],
             "command": ["/bin/sh", "-c"],
             "args": [

@@ -21,12 +21,12 @@ managed_ns="$(kubectl -n "$project_ns" get landscape example-app -o jsonpath='{.
 echo "==> project ns: $project_ns   managed ns: $managed_ns"
 
 echo "==> VectorTemplate (project ns)"
-sed "s|\${REGISTRY}|$REGISTRY|g" "$ROOT/vector/vectortemplate.yaml" \
+sed "s|\${REGISTRY}|$REGISTRY|g" "$ROOT/konfidence/vectortemplate.yaml" \
   | kubectl -n "$project_ns" apply -f -
 
 echo "==> Stage (managed ns) + VectorPromotionConfig (project ns)"
-kubectl -n "$managed_ns" apply -f "$ROOT/vector/stage.yaml"
-kubectl -n "$project_ns" apply -f "$ROOT/vector/vectorpromotionconfig.yaml"
+kubectl -n "$managed_ns" apply -f "$ROOT/konfidence/stage.yaml"
+kubectl -n "$project_ns" apply -f "$ROOT/konfidence/vectorpromotionconfig.yaml"
 
 echo
 echo "==> Done. Konfidence assembles the vector, promotes it into the Stage, and deploys. Inspect with:"

@@ -1,7 +1,9 @@
-# ${REGISTRY} is replaced at package time by hack/02-pipeline.sh.
+# ${REGISTRY} is substituted at package time by the build script.
+# image.tag is intentionally empty: it defaults to .Chart.AppVersion, which the
+# build script sets from VERSION via `helm package --app-version`.
 image:
   repository: ${REGISTRY}/interviews
-  tag: v0.1.0
+  tag: ""
   pullPolicy: IfNotPresent
 
 dbCredentialsSecret: example-app-db-credentials

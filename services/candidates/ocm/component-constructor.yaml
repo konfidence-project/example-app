@@ -1,18 +1,18 @@
-# ${REGISTRY} is replaced at push time.
+# ${REGISTRY} and ${VERSION} are substituted at push time by the build script.
 components:
   - name: github.com/konfidence-project/example-app/candidates
-    version: v0.1.0
+    version: ${VERSION}
     provider:
       name: konfidence-project
     sources: []
     resources:
       - name: candidates-kustomization
-        version: v0.1.0
+        version: ${VERSION}
         relation: external
         type: kustomize
         access:
           type: ociArtifact
-          imageReference: ${REGISTRY}/candidates-kustomization:v0.1.0
+          imageReference: ${REGISTRY}/candidates-kustomization:${VERSION}
 
       - name: konfidence-manifest
         relation: local
@@ -22,7 +22,7 @@ components:
           path: ./konfidence-manifest.json
 
       - name: verify-db-ready-manifest
-        version: v0.1.0
+        version: ${VERSION}
         relation: local
         type: cloud.konfidence.artifact.task.manifest
         input:
@@ -30,7 +30,7 @@ components:
           path: ./tasks/verify-db-ready/task-manifest.json
 
       - name: run-schema-migration-manifest
-        version: v0.1.0
+        version: ${VERSION}
         relation: local
         type: cloud.konfidence.artifact.task.manifest
         input:
@@ -38,7 +38,7 @@ components:
           path: ./tasks/run-schema-migration/task-manifest.json
 
       - name: verify-migration-manifest
-        version: v0.1.0
+        version: ${VERSION}
         relation: local
         type: cloud.konfidence.artifact.task.manifest
         input:
@@ -46,9 +46,9 @@ components:
           path: ./tasks/verify-migration/task-manifest.json
 
       - name: candidates-migrations-image
-        version: v0.1.0
+        version: ${VERSION}
         relation: external
         type: ociImage
         access:
           type: ociArtifact
-          imageReference: ${REGISTRY}/candidates-migrations:v0.1.0
+          imageReference: ${REGISTRY}/candidates-migrations:${VERSION}
