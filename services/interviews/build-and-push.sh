@@ -40,3 +40,9 @@ cp -r "$ROOT/ocm" "$DIST/ocm"
 find "$DIST/ocm/tasks" -type f -name 'task-manifest.json' -print0 \
   | xargs -0 sed -i "s|\${REGISTRY}|$REGISTRY|g; s|\${VERSION}|$VERSION|g"
 ( cd "$DIST/ocm" && kden artifact push --registry "https://$REGISTRY" --file component-constructor.yaml )
+
+# Move the floating `edge` alias to this version. The VectorTemplate references
+# :edge, so the controller re-resolves it and rolls out a new vector once edge
+# points at a different component version.
+echo "==> [$SVC] moving edge alias -> $VERSION"
+kden artifact alias "https://$REGISTRY//github.com/konfidence-project/example-app/$SVC:$VERSION" edge

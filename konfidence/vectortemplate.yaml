@@ -1,6 +1,10 @@
 # Assembles the deployable vector from the published component artifacts.
 # ${REGISTRY} is your registry repo prefix (same as step 02); the 03 script
 # substitutes it. Apply into the project namespace.
+#
+# The components are referenced by the floating `edge` alias (moved to the latest
+# published version by the pipeline). The controller re-resolves it and rolls out
+# a new vector whenever edge points at a different component version.
 apiVersion: konfidence.cloud/v1alpha1
 kind: VectorTemplate
 metadata:
@@ -12,8 +16,8 @@ spec:
       refs:
         - name: registry-credentials
   components:
-    - name: oci::https://${REGISTRY}//github.com/konfidence-project/example-app/candidates:v0.1.0
-    - name: oci::https://${REGISTRY}//github.com/konfidence-project/example-app/interviews:v0.1.0
+    - name: oci::https://${REGISTRY}//github.com/konfidence-project/example-app/candidates:edge
+    - name: oci::https://${REGISTRY}//github.com/konfidence-project/example-app/interviews:edge
   vectorConfig:
     features:
       allow-video-slots: false
