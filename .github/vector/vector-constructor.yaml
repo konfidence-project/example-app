@@ -1,0 +1,24 @@
+# Assembles a release vector that pins the published component versions, so a
+# quickstart can deploy the vector directly instead of assembling it on-cluster.
+# ${REGISTRY} and ${VERSION} are expanded from the environment by
+# `kden vector push` (see .github/workflows/publish.yaml).
+components:
+  - name: github.com/konfidence-project/example-app/vector
+    version: ${VERSION}
+    provider:
+      name: konfidence
+    componentReferences:
+      - name: candidates
+        componentName: github.com/konfidence-project/example-app/candidates
+        version: ${VERSION}
+      - name: interviews
+        componentName: github.com/konfidence-project/example-app/interviews
+        version: ${VERSION}
+    resources:
+      - name: cloud-konfidence-vector-config
+        type: json
+        version: 1.0.0
+        relation: local
+        input:
+          type: file/v1
+          path: ./vector-config.json

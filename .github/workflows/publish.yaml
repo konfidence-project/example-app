@@ -1,8 +1,8 @@
 name: Publish
 
 # Manually triggered publish of all example-app artifacts (images, kustomize/helm
-# deployment artifacts, OCM components) to the project's GHCR registry. Uses the
-# same hack/02-pipeline.sh that runs locally, driven by REGISTRY + VERSION.
+# deployment artifacts, OCM components) plus a release vector, to the project's
+# GHCR registry. Uses the same hack/ scripts that run locally (REGISTRY + VERSION).
 on:
   workflow_dispatch:
 
@@ -13,10 +13,11 @@ permissions:
 env:
   REGISTRY: ghcr.io/${{ github.repository }}   # ghcr.io/konfidence-project/example-app
   FLUX_VERSION: 2.9.5
-  # The kden CLI is not yet released with a working `artifact push` (the
-  # 0.0.1-alpha.1 binary panics), so build it from source.
-  # TODO: switch to a released kden binary once one ships with the fix.
-  KDEN_REF: 5e9b6bef36b3f444046bc87162b1653b3110bbca
+  # kden has no release with the fixes we need yet (0.0.1-alpha.1 `artifact push`
+  # panics; authenticated external-ref resolution for `vector push`), so build it
+  # from a pinned main commit.
+  # TODO: switch to a released kden binary once one ships with these fixes.
+  KDEN_REF: 22c675690afe8163518ee989d982c33021562e15
 
 jobs:
   publish:
@@ -62,3 +63,14 @@ jobs:
           REGISTRY: ${{ env.REGISTRY }}
           VERSION: ${{ steps.ver.outputs.version }}
         run: ./hack/02-pipeline.sh
+
+      # Assemble a release vector pinning the components just published, so a
+      # quickstart can deploy the vector directly. kden resolves the constructor's
+      # relative paths against the working directory, so run it from the vector dir.
+      - name: Build vector
+        working-directory: .github/vector
+        env:
+          REGISTRY: ${{ env.REGISTRY }}
+          VERSION: ${{ steps.ver.outputs.version }}
+          OCM_CONFIG: ${{ github.workspace }}/hack/ocmconfig.yaml
+        run: kden vector push -f vector-constructor.yaml -r "https://$REGISTRY"
