@@ -13,8 +13,8 @@ A two-service app delivered through [Konfidence](https://github.com/konfidence-p
 - **Schema migrations as Konfidence tasks** — one per service, packaged as `cloud.konfidence.artifact.task.manifest` OCM resources and run as k8s Jobs.
 - **OCM component descriptors** — one per service, one for the vector.
 - **Two deployer types** — `candidates` ships as a Kustomize bundle, `interviews`
-  as a Helm chart, so both Konfidence deployers (`cloud.konfidence.flux.kustomize`
-  and `cloud.konfidence.flux.helm`) are exercised.
+  as a Helm chart, so both Konfidence deployers (`kustomize.konfidence.cloud`
+  and `helm.konfidence.cloud`) are exercised.
 
 ## Flow
 
