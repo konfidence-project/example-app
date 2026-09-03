@@ -1,4 +1,4 @@
 {
-  "type": "cloud.konfidence.flux.kustomize",
+  "type": "kustomize.konfidence.cloud",
   "allowReuse": true
 }
