@@ -36,7 +36,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: azure/setup-helm@v4
+      - uses: azure/setup-helm@v5
 
       - name: Install Kustomize
         uses: imranismail/setup-kustomize@v2
