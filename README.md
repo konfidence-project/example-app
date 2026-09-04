@@ -86,7 +86,7 @@ export REGISTRY_PASSWORD=my-token
 ./hack/01-setup-kind-cluster.sh              # kind + Konfidence + Project/Landscape/credentials/Postgres
 ./hack/02-pipeline.sh                        # build + publish artifacts (imitates CI)
 ./hack/03-apply-konfidence-resources.sh      # VectorTemplate + Stage + promotion
-./hack/99-teardown.sh                        # remove the app
+./hack/99-teardown.sh                        # delete the kind cluster
 ```
 
 The same `REGISTRY` value is used by all three steps. The scripts publish and
@@ -151,7 +151,9 @@ REGISTRY=my-registry.example.com/my-org/example-app ./hack/02-pipeline.sh
 
 Or in CI: the `Publish` workflow (`.github/workflows/publish.yaml`,
 `workflow_dispatch`) publishes to `ghcr.io/<owner>/example-app` using the repo's
-`GITHUB_TOKEN`, with `VERSION=0.1.0-<shortsha>`.
+`GITHUB_TOKEN`, with `VERSION=0.1.0-<shortsha>`. It also assembles a release
+**vector** (`.github/vector/vector-constructor.yaml`) that pins the just-published
+component versions, so a quickstart can deploy the vector directly.
 
 ## Notes
 
