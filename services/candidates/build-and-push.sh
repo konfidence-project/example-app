@@ -10,6 +10,14 @@ export REGISTRY VERSION   # kden expands ${REGISTRY}/${VERSION} in the construct
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SVC=candidates
 
+# Portable in-place substitution of ${REGISTRY}/${VERSION} (avoids `sed -i`,
+# which differs between GNU and BSD/macOS).
+render() {
+  local tmp
+  tmp="$(mktemp)"
+  sed "s|\${REGISTRY}|$REGISTRY|g; s|\${VERSION}|$VERSION|g" "$1" > "$tmp" && mv "$tmp" "$1"
+}
+
 # Generated manifests land in a gitignored dist/ so they can be inspected after a run.
 DIST="$ROOT/dist"
 rm -rf "$DIST"
@@ -37,7 +45,7 @@ flux push artifact "oci://$REGISTRY/$SVC-kustomization:$VERSION" \
 echo "==> [$SVC] pushing OCM component"
 cp -r "$ROOT/ocm" "$DIST/ocm"
 find "$DIST/ocm/tasks" -type f -name 'task-manifest.json' -print0 \
-  | xargs -0 sed -i "s|\${REGISTRY}|$REGISTRY|g; s|\${VERSION}|$VERSION|g"
+  | while IFS= read -r -d '' f; do render "$f"; done
 ( cd "$DIST/ocm" && kden artifact push --registry "https://$REGISTRY" --file component-constructor.yaml )
 
 # Move the floating `edge` alias to this version. The VectorTemplate references
