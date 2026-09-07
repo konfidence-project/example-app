@@ -1,0 +1,6 @@
+{
+  "features": {
+    "allow-video-slots": false,
+    "enable-candidate-notes": false
+  }
+}

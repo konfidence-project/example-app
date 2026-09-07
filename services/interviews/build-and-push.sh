@@ -10,6 +10,14 @@ export REGISTRY VERSION   # kden expands ${REGISTRY}/${VERSION} in the construct
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SVC=interviews
 
+# Portable in-place substitution of ${REGISTRY}/${VERSION} (avoids `sed -i`,
+# which differs between GNU and BSD/macOS).
+render() {
+  local tmp
+  tmp="$(mktemp)"
+  sed "s|\${REGISTRY}|$REGISTRY|g; s|\${VERSION}|$VERSION|g" "$1" > "$tmp" && mv "$tmp" "$1"
+}
+
 # Generated manifests land in a gitignored dist/ so they can be inspected after a run.
 DIST="$ROOT/dist"
 rm -rf "$DIST"
@@ -27,7 +35,7 @@ docker push "$REGISTRY/$SVC-migrations:$VERSION"
 # registry/version-agnostic.
 echo "==> [$SVC] publishing Helm chart"
 cp -r "$ROOT/chart" "$DIST/chart"
-sed -i "s|\${REGISTRY}|$REGISTRY|g" "$DIST/chart/values.yaml"
+render "$DIST/chart/values.yaml"
 helm package "$DIST/chart" --version "$VERSION" --app-version "$VERSION" --destination "$DIST" >/dev/null
 helm push "$DIST/$SVC-chart-$VERSION.tgz" "oci://$REGISTRY"
 
@@ -38,5 +46,11 @@ helm push "$DIST/$SVC-chart-$VERSION.tgz" "oci://$REGISTRY"
 echo "==> [$SVC] pushing OCM component"
 cp -r "$ROOT/ocm" "$DIST/ocm"
 find "$DIST/ocm/tasks" -type f -name 'task-manifest.json' -print0 \
-  | xargs -0 sed -i "s|\${REGISTRY}|$REGISTRY|g; s|\${VERSION}|$VERSION|g"
+  | while IFS= read -r -d '' f; do render "$f"; done
 ( cd "$DIST/ocm" && kden artifact push --registry "https://$REGISTRY" --file component-constructor.yaml )
+
+# Move the floating `edge` alias to this version. The VectorTemplate references
+# :edge, so the controller re-resolves it and rolls out a new vector once edge
+# points at a different component version.
+echo "==> [$SVC] moving edge alias -> $VERSION"
+kden artifact alias "https://$REGISTRY//github.com/konfidence-project/example-app/$SVC:$VERSION" edge
