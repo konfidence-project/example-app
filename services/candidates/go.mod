@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/google/uuid v1.6.0
-	github.com/jackc/pgx/v5 v5.10.0
+	github.com/jackc/pgx/v5 v5.11.0
 	github.com/open-feature/go-sdk v1.18.0
 	github.com/open-feature/go-sdk-contrib/providers/ofrep v0.1.7
 )
