@@ -23,11 +23,11 @@ set -euo pipefail
 
 : "${REGISTRY:?set REGISTRY to the repo the artifacts will be published to (same as step 02)}"
 CLUSTER="${CLUSTER:-konfidence-example}"
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 KONFIDENCE_SRC="${KONFIDENCE_SRC:-$ROOT/../konfidence}"
 KLO_SRC="${KLO_SRC:-$ROOT/../kubernetes-landscape-orchestrator}"
 IMAGE_TAG="${IMAGE_TAG:-dev}"
-source "$ROOT/hack/_common.sh"
+source "$ROOT/hack/local-dev/_common.sh"
 
 for bin in docker kind kubectl helm go; do
   command -v "$bin" >/dev/null || { echo "missing dependency: $bin" >&2; exit 1; }
@@ -104,4 +104,4 @@ install_vds_local "$KLO_SRC" "$managed_ns" "$IMAGE_TAG"
 
 echo
 echo "==> Cluster '$CLUSTER' ready with Konfidence (built from local sources)."
-echo "    Next: REGISTRY=$REGISTRY ./hack/02-pipeline.sh"
+echo "    Next: REGISTRY=$REGISTRY ./hack/local-dev/02-pipeline.sh"

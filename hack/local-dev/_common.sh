@@ -56,7 +56,7 @@ ensure_flux_auth_configmap() {
 # apply_project <root>: apply the Project, wait, print its namespace.
 apply_project() {
   local root="$1"
-  kubectl apply -f "$root/konfidence/project.yaml" >&2
+  kubectl apply -f "$root/hack/local-dev/manifests/project.yaml" >&2
   kubectl wait --for=jsonpath='{.status.conditions[?(@.type=="NamespaceReady")].status}'=True \
     project/example-app --timeout=60s >&2
   kubectl get project example-app -o jsonpath='{.status.namespace}'
@@ -66,7 +66,7 @@ apply_project() {
 # wait, print the managed namespace.
 apply_landscape() {
   local root="$1" project_ns="$2"
-  kubectl -n "$project_ns" apply -f "$root/konfidence/landscape.yaml" >&2
+  kubectl -n "$project_ns" apply -f "$root/hack/local-dev/manifests/landscape.yaml" >&2
   kubectl -n "$project_ns" wait --for=jsonpath='{.status.conditions[?(@.type=="NamespaceReady")].status}'=True \
     landscape/example-app --timeout=60s >&2
   kubectl -n "$project_ns" get landscape example-app -o jsonpath='{.status.namespace}'
@@ -83,7 +83,7 @@ add_pull_secret_to_default_sa() {
 # example-app-db-credentials at a managed database instead.
 deploy_postgres() {
   local root="$1" ns="$2"
-  kubectl apply -f "$root/hack/postgres.yaml" >&2
+  kubectl apply -f "$root/hack/local-dev/manifests/postgres.yaml" >&2
   kubectl -n example-app-db rollout status statefulset/postgres --timeout=120s >&2
   kubectl -n "$ns" apply -f - >&2 <<'EOF'
 apiVersion: v1

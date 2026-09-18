@@ -30,8 +30,8 @@ CLUSTER="${CLUSTER:-konfidence-example}"
 KONFIDENCE_VERSION="${KONFIDENCE_VERSION:-0.0.1-alpha.1}"
 # TODO(public-release): consider a tagged installer URL instead of `main`.
 INSTALL_URL="https://raw.githubusercontent.com/konfidence-project/konfidence/main/hack/quickstart/install.sh"
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-source "$ROOT/hack/_common.sh"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+source "$ROOT/hack/local-dev/_common.sh"
 
 for bin in kind kubectl helm; do
   command -v "$bin" >/dev/null || { echo "missing dependency: $bin" >&2; exit 1; }
@@ -68,4 +68,4 @@ deploy_postgres "$ROOT" "$managed_ns"
 
 echo
 echo "==> Cluster '$CLUSTER' ready with Konfidence."
-echo "    Next: REGISTRY=$REGISTRY ./hack/02-pipeline.sh"
+echo "    Next: REGISTRY=$REGISTRY ./hack/local-dev/02-pipeline.sh"
