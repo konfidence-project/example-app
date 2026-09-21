@@ -57,7 +57,7 @@ jobs:
         with:
           version: ${{ env.FLUX_VERSION }}
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version: stable
 
