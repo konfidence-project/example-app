@@ -5,5 +5,4 @@ apiVersion: konfidence.cloud/v1alpha1
 kind: Stage
 metadata:
   name: example-app
-spec:
-  vector: ""
+spec: {}

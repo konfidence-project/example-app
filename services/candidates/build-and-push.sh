@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build and publish the candidates service artifacts. Driven entirely by
-# REGISTRY + VERSION (exported by hack/02-pipeline.sh, or set them yourself):
+# REGISTRY + VERSION (exported by hack/local-dev/02-pipeline.sh, or set them yourself):
 #   REGISTRY=ghcr.io/my-org/example-app VERSION=0.1.0-dev ./services/candidates/build-and-push.sh
 set -euo pipefail
 

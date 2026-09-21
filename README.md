@@ -4,6 +4,8 @@
 
 A two-service app delivered through [Konfidence](https://github.com/konfidence-project/konfidence). Small enough to read end to end; every file is here to demonstrate one concept.
 
+To run it on a local cluster, follow the [Quickstart](https://konfidence.cloud/docs/getting-started/quickstart.html).
+
 ## What it demonstrates
 
 - **`X-Vector-ID` forwarding** between services — see `services/*/vectorid.*` and `services/interviews/src/candidatesClient.ts`.
@@ -37,10 +39,10 @@ A two-service app delivered through [Konfidence](https://github.com/konfidence-p
 
 - CLI tools: `docker`, `kind`, `kubectl`, `helm`, `flux`, `ocm`, `python3`.
 - A Kubernetes cluster with Konfidence installed — or run
-  `hack/01-setup-kind-cluster.sh` to create a local kind cluster with Konfidence.
+  `hack/local-dev/01-setup-kind-cluster.sh` to create a local kind cluster with Konfidence.
 - A container registry you can push to and the cluster can pull from.
 
-`hack/01-setup-kind-cluster.sh` provisions a Postgres for the app; a
+`hack/local-dev/01-setup-kind-cluster.sh` provisions a Postgres for the app; a
 production deployment would point `example-app-db-credentials` at a managed
 database instead.
 
@@ -83,10 +85,10 @@ export REGISTRY=my-registry.example.com/my-org/example-app
 export REGISTRY_USERNAME=my-user
 export REGISTRY_PASSWORD=my-token
 
-./hack/01-setup-kind-cluster.sh              # kind + Konfidence + Project/Landscape/credentials/Postgres
-./hack/02-pipeline.sh                        # build + publish artifacts (imitates CI)
-./hack/03-apply-konfidence-resources.sh      # VectorTemplate + Stage + promotion
-./hack/99-teardown.sh                        # delete the kind cluster
+./hack/local-dev/01-setup-kind-cluster.sh              # kind + Konfidence + Project/Landscape/credentials/Postgres
+./hack/local-dev/02-pipeline.sh                        # build + publish artifacts (imitates CI)
+./hack/local-dev/03-apply-konfidence-resources.sh      # VectorTemplate + Stage + promotion
+./hack/local-dev/99-teardown.sh                        # delete the kind cluster
 ```
 
 The same `REGISTRY` value is used by all three steps. The scripts publish and
@@ -105,7 +107,7 @@ Generic `REGISTRY` examples:
 | AWS ECR               | `123456789.dkr.ecr.eu-central-1.amazonaws.com/example-app` |
 
 > While the required Konfidence fixes are unreleased, run
-> `./hack/01_temp_from_local.sh` instead of `01-setup-kind-cluster.sh` — it
+> `./hack/local-dev/01_temp_from_local.sh` instead of `01-setup-kind-cluster.sh` — it
 > builds Konfidence from sibling checkouts (`../konfidence`, `../kubernetes-landscape-orchestrator`).
 
 Step 01 sets up the *static* resources — a Project (its own `kden-p-*`
@@ -122,7 +124,7 @@ the *runtime* resources — a VectorTemplate, an empty Stage, and a
 VectorPromotionConfig that promotes the assembled vector into the Stage.
 Konfidence reconciles the rest; the scripts don't deploy the workloads directly.
 
-> No cluster yet? `./hack/01-setup-kind-cluster.sh` spins up a kind cluster and
+> No cluster yet? `./hack/local-dev/01-setup-kind-cluster.sh` spins up a kind cluster and
 > installs Konfidence using the official quickstart installer.
 
 ## Publishing
@@ -135,7 +137,7 @@ variables and nothing else:
 | `REGISTRY` | — (required) | OCI repo prefix to publish under, e.g. `ghcr.io/my-org/example-app`. |
 | `VERSION`  | `0.1.0-<shortsha>` | Artifact version for images, chart, kustomization and OCM components. A unique value keeps re-runs idempotent (`kden` has no overwrite). |
 
-`hack/02-pipeline.sh` is a thin orchestrator that runs each service's
+`hack/local-dev/02-pipeline.sh` is a thin orchestrator that runs each service's
 `services/<svc>/build-and-push.sh`. Each builds and pushes the service +
 migration images, publishes the Kustomize bundle (`flux push artifact`) or Helm
 chart (`helm push`), and pushes the OCM component with `kden artifact push`.
@@ -146,7 +148,7 @@ Run it against your own registry:
 
 ```bash
 docker login my-registry.example.com
-REGISTRY=my-registry.example.com/my-org/example-app ./hack/02-pipeline.sh
+REGISTRY=my-registry.example.com/my-org/example-app ./hack/local-dev/02-pipeline.sh
 ```
 
 Or in CI: the `Publish` workflow (`.github/workflows/publish.yaml`,
@@ -173,8 +175,8 @@ component versions, so a quickstart can deploy the vector directly.
 | OCM component | `services/*/ocm/component-constructor.yaml` |
 | Deployer manifest | `services/*/ocm/konfidence-manifest.json` (kustomize for candidates, helm for interviews) |
 | Migration task | `services/*/ocm/tasks/*/task-manifest.json` |
-| Vector assembly | `konfidence/vectortemplate.yaml` |
-| Vector-scoped config | `konfidence/vectortemplate.yaml` → `spec.vectorConfig.features` |
+| Vector assembly | `hack/local-dev/manifests/vectortemplate.yaml` |
+| Vector-scoped config | `hack/local-dev/manifests/vectortemplate.yaml` → `spec.vectorConfig.features` |
 | OpenFeature client | `services/candidates/openfeature.go`, `services/interviews/src/openfeature.ts` |
 | `X-Vector-ID` forwarding | `services/candidates/vectorid.go`, `services/interviews/src/{vectorid,candidatesClient}.ts` |
 

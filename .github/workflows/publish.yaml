@@ -70,7 +70,7 @@ jobs:
         env:
           REGISTRY: ${{ env.REGISTRY }}
           VERSION: ${{ steps.ver.outputs.version }}
-        run: ./hack/02-pipeline.sh
+        run: ./hack/local-dev/02-pipeline.sh
 
       # Assemble a release vector pinning the components just published, so a
       # quickstart can deploy the vector directly. kden resolves the constructor's
@@ -80,5 +80,5 @@ jobs:
         env:
           REGISTRY: ${{ env.REGISTRY }}
           VERSION: ${{ steps.ver.outputs.version }}
-          OCM_CONFIG: ${{ github.workspace }}/hack/ocmconfig.yaml
+          OCM_CONFIG: ${{ github.workspace }}/hack/local-dev/ocmconfig.yaml
         run: kden vector push -f vector-constructor.yaml -r "https://$REGISTRY"

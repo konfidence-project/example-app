@@ -14,14 +14,14 @@
 set -euo pipefail
 
 : "${REGISTRY:?set REGISTRY, e.g. ghcr.io/my-org/example-app (no scheme, no trailing slash)}"
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 export REGISTRY
 export VERSION="${VERSION:-0.1.0-$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo dev)}"
 
 # kden/OCM resolve registry credentials from an OCM config that reuses your
 # `docker login`. Use the committed hack/ocmconfig.yaml unless the caller already
 # provides their own OCM_CONFIG (which then takes precedence).
-export OCM_CONFIG="${OCM_CONFIG:-$ROOT/hack/ocmconfig.yaml}"
+export OCM_CONFIG="${OCM_CONFIG:-$ROOT/hack/local-dev/ocmconfig.yaml}"
 
 echo "==> Publishing example-app artifacts to $REGISTRY (version $VERSION)"
 "$ROOT/services/candidates/build-and-push.sh"

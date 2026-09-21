@@ -11,22 +11,22 @@
 set -euo pipefail
 
 : "${REGISTRY:?set REGISTRY to the repo the artifacts were published to (same as step 02)}"
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-source "$ROOT/hack/_common.sh"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+source "$ROOT/hack/local-dev/_common.sh"
 
 project_ns="$(kubectl get project example-app -o jsonpath='{.status.namespace}')"
 managed_ns="$(kubectl -n "$project_ns" get landscape example-app -o jsonpath='{.status.namespace}')"
 [ -n "$project_ns" ] && [ -n "$managed_ns" ] || {
-  echo "Project/Landscape not ready — run ./hack/01-setup-kind-cluster.sh first" >&2; exit 1; }
+  echo "Project/Landscape not ready — run ./hack/local-dev/01-setup-kind-cluster.sh first" >&2; exit 1; }
 echo "==> project ns: $project_ns   managed ns: $managed_ns"
 
 echo "==> VectorTemplate (project ns)"
-sed "s|\${REGISTRY}|$REGISTRY|g" "$ROOT/konfidence/vectortemplate.yaml" \
+sed "s|\${REGISTRY}|$REGISTRY|g" "$ROOT/hack/local-dev/manifests/vectortemplate.yaml" \
   | kubectl -n "$project_ns" apply -f -
 
 echo "==> Stage (managed ns) + VectorPromotionConfig (project ns)"
-kubectl -n "$managed_ns" apply -f "$ROOT/konfidence/stage.yaml"
-kubectl -n "$project_ns" apply -f "$ROOT/konfidence/vectorpromotionconfig.yaml"
+kubectl -n "$managed_ns" apply -f "$ROOT/hack/local-dev/manifests/stage.yaml"
+kubectl -n "$project_ns" apply -f "$ROOT/hack/local-dev/manifests/vectorpromotionconfig.yaml"
 
 echo
 echo "==> Done. Konfidence assembles the vector, promotes it into the Stage, and deploys. Inspect with:"
