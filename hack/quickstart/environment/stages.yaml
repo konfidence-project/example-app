@@ -12,5 +12,4 @@ kind: Stage
 metadata:
   name: prod-eu12
   namespace: kden-l-prod
-spec:
-  vector: ""
+spec: {}

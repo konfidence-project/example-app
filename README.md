@@ -4,6 +4,8 @@
 
 A two-service app delivered through [Konfidence](https://github.com/konfidence-project/konfidence). Small enough to read end to end; every file is here to demonstrate one concept.
 
+To run it on a local cluster, follow the [Quickstart](https://konfidence.cloud/docs/getting-started/quickstart.html).
+
 ## What it demonstrates
 
 - **`X-Vector-ID` forwarding** between services — see `services/*/vectorid.*` and `services/interviews/src/candidatesClient.ts`.
