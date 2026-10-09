@@ -14,10 +14,10 @@
     "@openfeature/ofrep-provider": "^0.2.5",
     "@openfeature/server-sdk": "^1.19.0",
     "fastify": "^5.12.5",
-    "pg": "^8.23.0"
+    "pg": "^8.23.1"
   },
   "devDependencies": {
-    "@types/node": "^26.6.3",
+    "@types/node": "^26.6.4",
     "@types/pg": "^8.23.1",
     "typescript": "^7.0.2"
   },
