@@ -41,12 +41,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      # Build both platforms the publish workflow pushes, so an arm64-only
+      # breakage fails here instead of on Apple Silicon quickstart clusters.
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
       - name: build service + migration images
         run: |
-          docker build services/candidates
-          docker build services/candidates/migrations
-          docker build services/interviews
-          docker build services/interviews/migrations
+          for dir in services/candidates services/candidates/migrations services/interviews services/interviews/migrations; do
+            docker buildx build --platform linux/amd64,linux/arm64 "$dir"
+          done
 
   reuse:
     name: REUSE compliance

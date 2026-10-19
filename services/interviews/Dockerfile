@@ -1,4 +1,7 @@
-FROM node:26-alpine AS build
+# syntax=docker/dockerfile:1
+# All dependencies are pure JavaScript, so node_modules built natively on the
+# build platform run on every target platform.
+FROM --platform=$BUILDPLATFORM node:26-alpine AS build
 WORKDIR /src
 COPY package.json package-lock.json tsconfig.json ./
 RUN npm ci --no-audit --no-fund
