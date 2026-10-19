@@ -1,0 +1,99 @@
+# One konfidence-router Gateway per landscape. Konfidence attaches its
+# per-stage HTTPRoutes to it (ADR-0037). The EnvoyProxy pins its Service to
+# ClusterIP with a stable name, and the ReferenceGrant lets the edge routes in
+# edge-gateway forward to that Service.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: konfidence-router
+  namespace: kden-l-dev
+spec:
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyService:
+        name: konfidence-router
+        type: ClusterIP
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: konfidence-router
+  namespace: kden-l-dev
+spec:
+  gatewayClassName: envoy-gateway
+  infrastructure:
+    parametersRef:
+      group: gateway.envoyproxy.io
+      kind: EnvoyProxy
+      name: konfidence-router
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: Same
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: ReferenceGrant
+metadata:
+  name: edge-gateway
+  namespace: kden-l-dev
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: edge-gateway
+  to:
+    - group: ""
+      kind: Service
+      name: konfidence-router
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: konfidence-router
+  namespace: kden-l-prod
+spec:
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyService:
+        name: konfidence-router
+        type: ClusterIP
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: konfidence-router
+  namespace: kden-l-prod
+spec:
+  gatewayClassName: envoy-gateway
+  infrastructure:
+    parametersRef:
+      group: gateway.envoyproxy.io
+      kind: EnvoyProxy
+      name: konfidence-router
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: Same
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: ReferenceGrant
+metadata:
+  name: edge-gateway
+  namespace: kden-l-prod
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: edge-gateway
+  to:
+    - group: ""
+      kind: Service
+      name: konfidence-router
