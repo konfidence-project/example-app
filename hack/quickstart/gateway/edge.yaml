@@ -1,0 +1,56 @@
+# The edge Gateway receives the Example App's traffic on the Quickstart cluster.
+# Konfidence ships no gateway (ADR-0037); this plays the cluster admin with
+# Envoy Gateway. Requires Envoy Gateway in GatewayNamespace mode.
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: envoy-gateway
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: edge-gateway
+---
+# The Quickstart cluster has no load balancer. Its kind config maps
+# localhost:9090 to NodePort 30080, so the edge Service uses that NodePort.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: edge
+  namespace: edge-gateway
+spec:
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyService:
+        name: edge
+        type: NodePort
+        patch:
+          type: StrategicMerge
+          value:
+            spec:
+              ports:
+                - port: 80
+                  nodePort: 30080
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: edge
+  namespace: edge-gateway
+spec:
+  gatewayClassName: envoy-gateway
+  infrastructure:
+    parametersRef:
+      group: gateway.envoyproxy.io
+      kind: EnvoyProxy
+      name: edge
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: Same
