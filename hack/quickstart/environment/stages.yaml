@@ -5,7 +5,7 @@ metadata:
   name: dev-eu12
   namespace: kden-l-dev
 spec:
-  vector: https://ghcr.io/konfidence-project/example-app//github.com/konfidence-project/example-app/vector:0.1.0-f486ecb
+  vector: https://ghcr.io/konfidence-project/example-app//github.com/konfidence-project/example-app/vector:0.1.0-5fa2d16
 ---
 apiVersion: konfidence.cloud/v1alpha1
 kind: Stage
