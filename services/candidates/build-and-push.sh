@@ -9,6 +9,8 @@ set -euo pipefail
 export REGISTRY VERSION   # kden expands ${REGISTRY}/${VERSION} in the constructor from the env
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SVC=candidates
+# Quickstart clusters run on amd64 and arm64 (Apple Silicon) hosts.
+PLATFORMS="${PLATFORMS:-linux/amd64,linux/arm64}"
 
 # Portable in-place substitution of ${REGISTRY}/${VERSION} (avoids `sed -i`,
 # which differs between GNU and BSD/macOS).
@@ -23,11 +25,11 @@ DIST="$ROOT/dist"
 rm -rf "$DIST"
 mkdir -p "$DIST"
 
-echo "==> [$SVC] building and pushing images"
-docker build -t "$REGISTRY/$SVC:$VERSION" "$ROOT"
-docker build -t "$REGISTRY/$SVC-migrations:$VERSION" "$ROOT/migrations"
-docker push "$REGISTRY/$SVC:$VERSION"
-docker push "$REGISTRY/$SVC-migrations:$VERSION"
+echo "==> [$SVC] building and pushing images for $PLATFORMS"
+# A multi-platform image cannot be loaded into the local image store, so
+# buildx pushes it directly.
+docker buildx build --platform "$PLATFORMS" --push -t "$REGISTRY/$SVC:$VERSION" "$ROOT"
+docker buildx build --platform "$PLATFORMS" --push -t "$REGISTRY/$SVC-migrations:$VERSION" "$ROOT/migrations"
 
 # Flux deploys the kustomize bundle, so publish it with flux tooling (flux-native
 # OCI media types). The image is remapped to the pushed tag via `kustomize edit`
