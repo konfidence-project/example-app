@@ -84,4 +84,13 @@ jobs:
           REGISTRY: ${{ env.REGISTRY }}
           VERSION: ${{ steps.ver.outputs.version }}
           OCM_CONFIG: ${{ github.workspace }}/hack/local-dev/ocmconfig.yaml
-        run: kden vector push -f vector-constructor.yaml -r "https://$REGISTRY"
+        # Retried because copying the referenced components intermittently fails
+        # with "context canceled" (konfidence-project/konfidence#414). The failure
+        # happens before the vector is written, so a retry is safe.
+        run: |
+          for attempt in 1 2 3; do
+            kden vector push -f vector-constructor.yaml -r "https://$REGISTRY" && exit 0
+            echo "vector push attempt $attempt failed" >&2
+            sleep 10
+          done
+          exit 1
