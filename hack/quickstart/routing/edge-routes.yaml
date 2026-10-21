@@ -1,6 +1,10 @@
-# <stage>.example.kden.local selects a stage: the edge sets x-konfidence-stage
-# and forwards to that landscape's konfidence-router. Gateway API cannot derive
-# the header from the subdomain, so every stage needs its own route.
+# <stage>.example.kden.local selects a stage and the first path segment selects
+# the deployment result: the edge sets x-konfidence-stage and
+# x-konfidence-service and forwards to that landscape's konfidence-router.
+# Konfidence matches on both headers. Gateway API cannot derive a header from
+# the subdomain or path, so every stage needs its own route and every exposed
+# deployment result its own rule. set (not add) overwrites client-supplied
+# values, so clients cannot pick another stage or service.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -12,12 +16,34 @@ spec:
   hostnames:
     - dev-eu12.example.kden.local
   rules:
-    - filters:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /candidates
+      filters:
         - type: RequestHeaderModifier
           requestHeaderModifier:
             set:
               - name: x-konfidence-stage
                 value: dev-eu12
+              - name: x-konfidence-service
+                value: candidates
+      backendRefs:
+        - name: konfidence-router
+          namespace: kden-l-dev
+          port: 80
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /interviews
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            set:
+              - name: x-konfidence-stage
+                value: dev-eu12
+              - name: x-konfidence-service
+                value: interviews
       backendRefs:
         - name: konfidence-router
           namespace: kden-l-dev
@@ -34,12 +60,34 @@ spec:
   hostnames:
     - prod-eu12.example.kden.local
   rules:
-    - filters:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /candidates
+      filters:
         - type: RequestHeaderModifier
           requestHeaderModifier:
             set:
               - name: x-konfidence-stage
                 value: prod-eu12
+              - name: x-konfidence-service
+                value: candidates
+      backendRefs:
+        - name: konfidence-router
+          namespace: kden-l-prod
+          port: 80
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /interviews
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            set:
+              - name: x-konfidence-stage
+                value: prod-eu12
+              - name: x-konfidence-service
+                value: interviews
       backendRefs:
         - name: konfidence-router
           namespace: kden-l-prod
