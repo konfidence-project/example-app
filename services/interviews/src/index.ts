@@ -1,6 +1,6 @@
 import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
-import { getVectorId } from "./vectorid.js";
-import { initOpenFeature, isEnabled } from "./openfeature.js";
+import { getRoutingKey, ROUTING_KEY_HEADER } from "./routingkey.js";
+import { allFlags, initOpenFeature, isEnabled } from "./openfeature.js";
 import { insertInterview, listInterviews } from "./db.js";
 import { candidateExists, fetchCandidate } from "./candidatesClient.js";
 
@@ -18,13 +18,21 @@ async function main() {
 
   const app = Fastify({ logger: true });
 
-  // Log every incoming request with the vector-id it carries (skip health probes).
-  app.addHook("onRequest", async (req) => {
+  // Log every incoming request with the routing key it carries (skip health probes). Also echo the routing key on
+  // the response for debugging; harmless, no PII.
+  app.addHook("onRequest", async (req, reply) => {
+    const key = getRoutingKey(req);
+    if (key) reply.header(ROUTING_KEY_HEADER, key);
     if (req.url === "/healthz") return;
-    req.log.info({ method: req.method, url: req.url, vectorId: getVectorId(req) }, "incoming request");
+    req.log.info({ method: req.method, url: req.url, routingKey: key }, "incoming request");
   });
 
   app.get("/healthz", { logLevel: "silent" }, async () => ({ status: "ok" }));
+
+  app.get("/interviews/debug", async (req: FastifyRequest) => {
+    const routingKey = getRoutingKey(req);
+    return { service: "interviews", routingKey, flags: await allFlags(routingKey) };
+  });
 
   app.post("/interviews", async (req: FastifyRequest<{ Body: CreateInterviewBody }>, reply: FastifyReply) => {
     const { candidateId, slotTime, slotType } = req.body ?? {};
@@ -32,19 +40,19 @@ async function main() {
       return reply.code(400).send({ error: "candidateId, slotTime and slotType are required" });
     }
 
-    const vectorId = getVectorId(req);
+    const routingKey = getRoutingKey(req);
     const allowed = new Set(DEFAULT_SLOT_TYPES);
-    if (await isEnabled(vectorId, "allow-video-slots", false)) {
+    if (await isEnabled(routingKey, "allow-video-slots", false)) {
       allowed.add("video");
     }
     if (!allowed.has(slotType)) {
-      return reply.code(400).send({ error: `slot type ${slotType} is not enabled for this vector` });
+      return reply.code(400).send({ error: `slot type ${slotType} is not enabled` });
     }
 
-    req.log.info({ vectorId, candidateId }, "verifying candidate via service-to-service call");
+    req.log.info({ routingKey, candidateId }, "verifying candidate via service-to-service call");
     let exists = false;
     try {
-      exists = await candidateExists(candidateId, vectorId);
+      exists = await candidateExists(candidateId, routingKey);
     } catch (err) {
       req.log.error(err, "candidates lookup failed");
       return reply.code(502).send({ error: "candidates service unavailable" });
@@ -59,11 +67,11 @@ async function main() {
 
   // Service-to-service GET: resolves candidates from the vector's deployment results and fetches the candidate.
   app.get("/candidates/:id", async (req: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
-    const vectorId = getVectorId(req);
+    const routingKey = getRoutingKey(req);
     const { id } = req.params;
-    req.log.info({ vectorId, candidateId: id }, "fetching candidate via service-to-service call");
+    req.log.info({ routingKey, candidateId: id }, "fetching candidate via service-to-service call");
     try {
-      const candidate = await fetchCandidate(id, vectorId);
+      const candidate = await fetchCandidate(id, routingKey);
       if (!candidate) return reply.code(404).send({ error: "candidate not found" });
       return candidate;
     } catch (err) {
@@ -74,12 +82,12 @@ async function main() {
 
   // List interviews, enriching each with its candidate fetched on the fly (service-to-service).
   app.get("/interviews", async (req: FastifyRequest) => {
-    const vectorId = getVectorId(req);
+    const routingKey = getRoutingKey(req);
     const interviews = await listInterviews();
     return Promise.all(
       interviews.map(async (iv) => {
         try {
-          const candidate = await fetchCandidate(iv.candidate_id, vectorId);
+          const candidate = await fetchCandidate(iv.candidate_id, routingKey);
           return { ...iv, candidate };
         } catch (err) {
           req.log.warn(err, "candidate enrichment failed");

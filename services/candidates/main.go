@@ -26,13 +26,14 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", handleHealth)
+	mux.HandleFunc("GET /candidates/debug", handleDebug)
 	mux.HandleFunc("POST /candidates", handleCreateCandidate(db))
 	mux.HandleFunc("GET /candidates/{id}", handleGetCandidate(db))
 
 	addr := envOr("LISTEN_ADDR", ":8080")
 	srv := &http.Server{
 		Addr:         addr,
-		Handler:      withVectorID(mux),
+		Handler:      withRoutingKey(mux),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
@@ -46,6 +47,15 @@ func main() {
 func handleHealth(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte(`{"status":"ok"}`))
+}
+
+// handleDebug returns every feature flag the active vector carries.
+func handleDebug(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{
+		"service":    "candidates",
+		"routingKey": routingKeyFromContext(r.Context()),
+		"flags":      allFlags(r.Context()),
+	})
 }
 
 type createCandidateRequest struct {
@@ -74,7 +84,7 @@ func handleCreateCandidate(db *DB) http.HandlerFunc {
 		}
 
 		if req.Notes != nil && !isEnabled(r.Context(), "enable-candidate-notes", false) {
-			writeError(w, http.StatusBadRequest, "notes field is not enabled for this vector")
+			writeError(w, http.StatusBadRequest, "notes field is not enabled")
 			return
 		}
 
