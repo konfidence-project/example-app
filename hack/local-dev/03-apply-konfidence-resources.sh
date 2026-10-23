@@ -43,7 +43,7 @@ cat <<EOS
   kubectl -n "\$NS" port-forward "svc/\$IV" 8080:80 >/dev/null 2>&1 &
   sleep 3
   CID=\$(curl -s -X POST localhost:8081/candidates -H 'Content-Type: application/json' \\
-    -H "X-Vector-ID: \$VID" -d '{"name":"Ada Lovelace","email":"ada@example.com"}' \\
+    -H "X-Konfidence-Routing-Key: \$VID" -d '{"name":"Ada Lovelace","email":"ada@example.com"}' \\
     | python3 -c 'import sys,json;print(json.load(sys.stdin)["id"])')
-  curl -s -H "X-Vector-ID: \$VID" "localhost:8080/candidates/\$CID"; echo
+  curl -s -H "X-Konfidence-Routing-Key: \$VID" "localhost:8080/candidates/\$CID"; echo
 EOS
