@@ -8,7 +8,7 @@ To run it on a local cluster, follow the [Quickstart](https://konfidence.cloud/d
 
 ## What it demonstrates
 
-- **`X-Vector-ID` forwarding** between services — see `services/*/vectorid.*` and `services/interviews/src/candidatesClient.ts`.
+- **`X-Konfidence-Routing-Key` forwarding** between services — see `services/*/vectorid.*` and `services/interviews/src/candidatesClient.ts`.
 - **Vector-scoped configuration via OpenFeature/OFREP.** Two release toggles:
   - `allow-video-slots` on `interviews` — whether `"video"` is an accepted slot type.
   - `enable-candidate-notes` on `candidates` — whether the `notes` field on a candidate is accepted.
@@ -26,7 +26,7 @@ To run it on a local cluster, follow the [Quickstart](https://konfidence.cloud/d
      ▼
   interviews (TypeScript)               ── OFREP ──▶  vector-data-service
      │ • allow-video-slots?
-     │ • forwards X-Vector-ID
+     │ • forwards X-Konfidence-Routing-Key
      ▼
   candidates (Go)                       ── OFREP ──▶  vector-data-service
      │ • enable-candidate-notes?
@@ -160,13 +160,11 @@ component versions, so a quickstart can deploy the vector directly.
 ## Notes
 
 - **Service-to-service discovery** — `interviews` resolves the `candidates`
-  address from the vector's deployment results (`X-Vector-ID` →
-  vector-data-service), so no address is hardcoded. Needs the platform's
-  vector-data-service (feature toggles read from it too).
-- **`X-Vector-ID` header name is configurable, not fixed** — set via
-  `VECTOR_ID_HEADER` because the propagation contract isn't finalized:
-  [konfidence-project#293](https://github.com/konfidence-project/konfidence-project/issues/293).
-  Once fixed we can rely on the canonical name.
+  address from the vector's deployment results via vector-data-service, so no
+  address is hardcoded. Needs the platform's vector-data-service (feature
+  toggles read from it too).
+- **`X-Konfidence-Routing-Key`** is forwarded on every request. Set by KLO's
+  activation route; apps read it from the header.
 
 ## Concepts, at a glance
 
@@ -178,7 +176,7 @@ component versions, so a quickstart can deploy the vector directly.
 | Vector assembly | `hack/local-dev/manifests/vectortemplate.yaml` |
 | Vector-scoped config | `hack/local-dev/manifests/vectortemplate.yaml` → `spec.vectorConfig.features` |
 | OpenFeature client | `services/candidates/openfeature.go`, `services/interviews/src/openfeature.ts` |
-| `X-Vector-ID` forwarding | `services/candidates/vectorid.go`, `services/interviews/src/{vectorid,candidatesClient}.ts` |
+| `X-Konfidence-Routing-Key` forwarding | `services/candidates/routingkey.go`, `services/interviews/src/{routingkey,candidatesClient}.ts` |
 
 ## Support, Feedback, Contributing
 

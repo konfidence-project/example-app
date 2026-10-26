@@ -10,14 +10,15 @@ HTTP service in TypeScript (Node/Fastify). Books interviews for candidates. Call
 | POST | `/interviews` | `{"candidateId","slotTime","slotType"}` | `201 {…}` / `400` / `502` |
 | GET  | `/interviews` | — | `200 [{…}]` |
 
-`slotType` accepts `onsite` and `phone` by default. `video` is only accepted when the `allow-video-slots` release toggle is on for the request's vector.
+`slotType` accepts `onsite` and `phone` by default. `video` is only accepted when the `allow-video-slots` release toggle is on.
+
+The routing key is read from the `X-Konfidence-Routing-Key` request header.
 
 ## Env
 
 | Name | Default |
 |---|---|
 | `LISTEN_PORT` | `8080` |
-| `VECTOR_ID_HEADER` | `X-Vector-ID` |
 | `VECTOR_CONFIG_URL` | `http://vector-data-service` |
 | `CANDIDATES_URL` | `http://candidates.example-landscape.svc.cluster.local` |
 | `DATABASE_URL` | — |

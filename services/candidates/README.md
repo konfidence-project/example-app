@@ -10,14 +10,15 @@ HTTP service in Go. Stores candidates in Postgres.
 | POST | `/candidates` | `{"name","email"[,"notes"]}` | `201 {"id","name","email"[,"notes"]}` / `400` |
 | GET  | `/candidates/:id` | — | `200 {…}` / `404` |
 
-`notes` is only accepted when the `enable-candidate-notes` release toggle is on for the request's vector.
+`notes` is only accepted when the `enable-candidate-notes` release toggle is on.
+
+The routing key is read from the `X-Konfidence-Routing-Key` request header.
 
 ## Env
 
 | Name | Default |
 |---|---|
 | `LISTEN_ADDR` | `:8080` |
-| `VECTOR_ID_HEADER` | `X-Vector-ID` |
 | `VECTOR_CONFIG_URL` | `http://vector-data-service` |
 | `DATABASE_URL` | — |
 | `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`, `PGSSLMODE` | — |
