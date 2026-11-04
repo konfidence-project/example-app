@@ -1,0 +1,8 @@
+# Aggregates the quickstart resources so the demo environment applies in one shot.
+# The subdirectories remain valid standalone kustomizations.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - project
+  - landscapes
+  - environment
