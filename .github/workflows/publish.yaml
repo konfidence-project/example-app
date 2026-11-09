@@ -25,7 +25,7 @@ env:
   # panics; authenticated external-ref resolution for `vector push`), so build it
   # from a pinned main commit.
   # TODO: switch to a released kden binary once one ships with these fixes.
-  KDEN_REF: 22c675690afe8163518ee989d982c33021562e15
+  KDEN_REF: bfdd575491d239b453936d453c8bae9b7acd31e9
 
 jobs:
   publish:

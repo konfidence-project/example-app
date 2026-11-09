@@ -18,8 +18,10 @@ components:
         relation: local
         type: cloud.konfidence.artifact.manifest
         input:
-          type: file/v1
-          path: ./konfidence-manifest.json
+          type: UTF8/v1
+          yaml:
+            type: kustomize.konfidence.cloud
+            allowReuse: true
 
       - name: verify-db-ready-manifest
         version: ${VERSION}
