@@ -7,6 +7,7 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
   annotations:
     konfidence.cloud/deployment-result: interviews
+    konfidence.cloud/exposed-port-name: http
 spec:
   selector:
     app.kubernetes.io/name: interviews
