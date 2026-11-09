@@ -171,7 +171,7 @@ component versions, so a quickstart can deploy the vector directly.
 | Concept | Where |
 |---|---|
 | OCM component | `services/*/ocm/component-constructor.yaml` |
-| Deployer manifest | `services/*/ocm/konfidence-manifest.json` (kustomize for candidates, helm for interviews) |
+| Deployer manifest | inline in `services/*/ocm/component-constructor.yaml` (kustomize for candidates, helm for interviews) |
 | Migration task | `services/*/ocm/tasks/*/task-manifest.json` |
 | Vector assembly | `hack/local-dev/manifests/vectortemplate.yaml` |
 | Vector-scoped config | `hack/local-dev/manifests/vectortemplate.yaml` → `spec.vectorConfig.features` |
