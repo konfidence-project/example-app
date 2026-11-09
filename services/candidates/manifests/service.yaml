@@ -6,6 +6,7 @@ metadata:
     app: candidates
   annotations:
     konfidence.cloud/deployment-result: candidates
+    konfidence.cloud/exposed-port-name: http
 spec:
   selector:
     app: candidates
