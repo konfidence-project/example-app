@@ -1,9 +1,18 @@
+# The namespace is created here so the whole quickstart applies in one shot; the Project
+# adopts it (spec.namespacePolicy: Adopt) instead of creating its own.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kden-p-example-app
+---
 # roleBindings grants admin to local-admin so the project shows in the quickstart UI.
 apiVersion: konfidence.cloud/v1alpha1
 kind: Project
 metadata:
   name: example-app
 spec:
+  namespacePolicy: Adopt
+  namespace: kden-p-example-app
   displayName: Example App
   roleBindings:
     admin:

@@ -1,3 +1,15 @@
+# The managed namespaces are created here so the whole quickstart applies in one shot; each
+# Landscape adopts its own (spec.namespacePolicy: Adopt) instead of creating it.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kden-l-dev
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kden-l-prod
+---
 # spec.namespace pins the managed namespace so the Stages can target it.
 apiVersion: konfidence.cloud/v1alpha1
 kind: Landscape
@@ -5,6 +17,7 @@ metadata:
   name: dev
   namespace: kden-p-example-app
 spec:
+  namespacePolicy: Adopt
   displayName: Development
   namespace: kden-l-dev
 ---
@@ -14,5 +27,6 @@ metadata:
   name: prod
   namespace: kden-p-example-app
 spec:
+  namespacePolicy: Adopt
   displayName: Production
   namespace: kden-l-prod

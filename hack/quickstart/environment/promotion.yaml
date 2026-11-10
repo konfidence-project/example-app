@@ -1,10 +1,13 @@
-# Stage source defaults to requiring approval, so this waits for a manual approval.
+# Declares the explicit-approval gate so the promotion waits for a manual approval
+# before the vector is promoted from dev-eu12 to prod-eu12.
 apiVersion: konfidence.cloud/v1alpha1
 kind: VectorPromotionConfig
 metadata:
   name: dev-to-prod
   namespace: kden-p-example-app
 spec:
+  gates:
+    - type: explicit-approval.konfidence.cloud
   source:
     kind: Stage
     name: dev-eu12
