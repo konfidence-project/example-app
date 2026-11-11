@@ -1,15 +1,13 @@
 # Tells each landscape to deploy into the local (in-cluster) control plane.
-# One per DeploymentClass (kustomize + helm) per managed namespace; type "local"
-# needs no kubeconfig.
+# One target per artifact type (kustomize + helm) per managed namespace.
+# Empty parameters deploy directly into the control plane cluster.
 apiVersion: konfidence.cloud/v1alpha1
 kind: DeploymentTarget
 metadata:
   name: local-kustomize
   namespace: kden-l-dev
 spec:
-  deploymentClassName: kustomize.konfidence.cloud
-  connection:
-    type: local
+  artifactType: kustomize.konfidence.cloud
 ---
 apiVersion: konfidence.cloud/v1alpha1
 kind: DeploymentTarget
@@ -17,9 +15,7 @@ metadata:
   name: local-helm
   namespace: kden-l-dev
 spec:
-  deploymentClassName: helm.konfidence.cloud
-  connection:
-    type: local
+  artifactType: helm.konfidence.cloud
 ---
 apiVersion: konfidence.cloud/v1alpha1
 kind: DeploymentTarget
@@ -27,9 +23,7 @@ metadata:
   name: local-kustomize
   namespace: kden-l-prod
 spec:
-  deploymentClassName: kustomize.konfidence.cloud
-  connection:
-    type: local
+  artifactType: kustomize.konfidence.cloud
 ---
 apiVersion: konfidence.cloud/v1alpha1
 kind: DeploymentTarget
@@ -37,6 +31,4 @@ metadata:
   name: local-helm
   namespace: kden-l-prod
 spec:
-  deploymentClassName: helm.konfidence.cloud
-  connection:
-    type: local
+  artifactType: helm.konfidence.cloud
