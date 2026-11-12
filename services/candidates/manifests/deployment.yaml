@@ -9,10 +9,12 @@ spec:
   selector:
     matchLabels:
       app: candidates
+      app.kubernetes.io/instance: candidates
   template:
     metadata:
       labels:
         app: candidates
+        app.kubernetes.io/instance: candidates
     spec:
       containers:
         - name: candidates

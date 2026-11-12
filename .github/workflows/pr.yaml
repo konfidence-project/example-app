@@ -16,6 +16,14 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: services/candidates/go.mod
+      - uses: imranismail/setup-kustomize@v3
+        with:
+          kustomize-version: 5.4.3
+      - name: manifest selector tests
+        run: |
+          python3 -m venv "$RUNNER_TEMP/candidates-manifests"
+          "$RUNNER_TEMP/candidates-manifests/bin/pip" install PyYAML==6.0.3
+          "$RUNNER_TEMP/candidates-manifests/bin/python" services/candidates/test-manifests.py
       - name: vet + build
         working-directory: services/candidates
         run: |

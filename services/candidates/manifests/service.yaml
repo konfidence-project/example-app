@@ -10,6 +10,7 @@ metadata:
 spec:
   selector:
     app: candidates
+    app.kubernetes.io/instance: candidates
   ports:
     - name: http
       port: 80
