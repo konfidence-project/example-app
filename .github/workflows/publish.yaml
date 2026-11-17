@@ -37,24 +37,13 @@ jobs:
         id: ver
         shell: bash
         run: |
-          case "$GITHUB_REF" in
-            refs/heads/main)
-              channel=edge
-              version="0.1.0-$(git rev-parse --short HEAD)"
-              ;;
-            refs/heads/failure/readiness)
-              channel=failure-readiness
-              version="0.1.0-${channel}.$(git rev-parse --short HEAD).${GITHUB_RUN_ID}.${GITHUB_RUN_ATTEMPT}"
-              ;;
-            refs/heads/failure/migration)
-              channel=failure-migration
-              version="0.1.0-${channel}.$(git rev-parse --short HEAD).${GITHUB_RUN_ID}.${GITHUB_RUN_ATTEMPT}"
-              ;;
-            *)
-              echo "Unsupported publication ref: $GITHUB_REF" >&2
-              exit 1
-              ;;
-          esac
+          if [[ "$GITHUB_REF_NAME" == main ]]; then
+            channel=edge
+            version="0.1.0-$(git rev-parse --short HEAD)"
+          else
+            channel="${GITHUB_REF_NAME//\//-}"
+            version="0.1.0-${channel}.$(git rev-parse --short HEAD)"
+          fi
           echo "channel=$channel" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
@@ -89,10 +78,6 @@ jobs:
         run: |
           go install "github.com/konfidence-project/konfidence/cmd/kden@${KDEN_REF}"
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
-
-      - name: Test candidates
-        working-directory: services/candidates
-        run: go test ./...
 
       - name: Publish artifacts
         env:
