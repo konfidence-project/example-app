@@ -27,6 +27,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", handleHealth)
 	mux.HandleFunc("GET /candidates/debug", handleDebug)
+	mux.HandleFunc("GET /candidates", handleListCandidates(db))
 	mux.HandleFunc("POST /candidates", handleCreateCandidate(db))
 	mux.HandleFunc("GET /candidates/{id}", handleGetCandidate(db))
 
@@ -98,6 +99,22 @@ func handleCreateCandidate(db *DB) http.HandlerFunc {
 		writeJSON(w, http.StatusCreated, candidateResponse{
 			ID: id, Name: req.Name, Email: req.Email, Notes: req.Notes,
 		})
+	}
+}
+
+func handleListCandidates(db *DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		rows, err := db.ListCandidates(r.Context())
+		if err != nil {
+			log.Printf("list: %v", err)
+			writeError(w, http.StatusInternalServerError, "storage error")
+			return
+		}
+		out := make([]candidateResponse, 0, len(rows))
+		for _, c := range rows {
+			out = append(out, candidateResponse{ID: c.ID, Name: c.Name, Email: c.Email, Notes: c.Notes})
+		}
+		writeJSON(w, http.StatusOK, out)
 	}
 }
 

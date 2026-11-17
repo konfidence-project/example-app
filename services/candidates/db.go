@@ -66,3 +66,23 @@ func (d *DB) GetCandidate(ctx context.Context, id string) (name, email string, n
 	}
 	return name, email, notes, err
 }
+
+type candidateRow struct {
+	ID    string
+	Name  string
+	Email string
+	Notes *string
+}
+
+// ListCandidates returns every candidate ordered by name. The example dataset is small, so there is no paging.
+func (d *DB) ListCandidates(ctx context.Context) ([]candidateRow, error) {
+	rows, err := d.pool.Query(ctx, `SELECT id, name, email, notes FROM candidates ORDER BY name, id`)
+	if err != nil {
+		return nil, err
+	}
+	return pgx.CollectRows(rows, func(r pgx.CollectableRow) (candidateRow, error) {
+		var c candidateRow
+		err := r.Scan(&c.ID, &c.Name, &c.Email, &c.Notes)
+		return c, err
+	})
+}
