@@ -1,7 +1,9 @@
 {
   "name": "candidates-run-schema-migration",
   "type": "k8s-job",
-  "dependsOn": ["candidates-verify-db-ready"],
+  "dependsOn": [
+    "candidates-verify-db-ready"
+  ],
   "spec": {
     "template": {
       "spec": {
@@ -10,15 +12,25 @@
           {
             "name": "run-migration",
             "image": "${REGISTRY}/candidates-migrations:${VERSION}",
-            "envFrom": [{ "secretRef": { "name": "example-app-db-credentials" } }],
-            "command": ["/bin/sh", "-c"],
+            "envFrom": [
+              {
+                "secretRef": {
+                  "name": "example-app-db-credentials"
+                }
+              }
+            ],
+            "command": [
+              "/bin/sh",
+              "-c"
+            ],
             "args": [
-              "migrate -path=/migrations -database \"postgres://$PGUSER:$PGPASSWORD@$PGHOST:$PGPORT/$PGDATABASE?sslmode=${PGSSLMODE:-disable}&x-migrations-table=schema_migrations_candidates\" up"
+              "echo \"deliberate migration failure\" >&2; exit 1"
             ]
           }
         ]
       }
     },
-    "backoffLimit": 4
+    "backoffLimit": 0,
+    "activeDeadlineSeconds": 60
   }
 }
