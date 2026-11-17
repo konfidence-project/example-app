@@ -19,6 +19,10 @@ const json = (status, body) =>
     headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
   });
 
+// Only the message leaves the server. Stringifying the error itself could
+// expose a stack trace.
+const errorMessage = (err) => (err instanceof Error ? err.message : "unknown error");
+
 /** @param {Request} request */
 export async function GET(request) {
   if (!devtoolsEnabled()) return json(404, { error: "not found" });
@@ -29,7 +33,7 @@ export async function GET(request) {
   try {
     vector = await vectorData();
   } catch (err) {
-    vectorError = String(err?.message ?? err);
+    vectorError = errorMessage(err);
   }
 
   const names = await serviceNames();
@@ -76,7 +80,7 @@ async function describeService(name, key) {
       ? "env"
       : "deployment-result";
   } catch (err) {
-    out.error = String(err?.message ?? err);
+    out.error = errorMessage(err);
     return out;
   }
   // Called directly, not through serviceFetch(), so polling the endpoint does
@@ -110,7 +114,7 @@ async function describeService(name, key) {
       runtime: null,
       routingKey: null,
       flags: null,
-      error: String(err?.message ?? err),
+      error: errorMessage(err),
     };
   }
   return out;

@@ -131,7 +131,7 @@ export async function serviceFetch(name, path, init = {}) {
         host,
         status: null,
         routingKey: key,
-        error: String(err?.message ?? err),
+        error: err instanceof Error ? err.message : "unknown error",
       },
       performance.now() - started,
     );

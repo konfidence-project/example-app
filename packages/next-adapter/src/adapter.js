@@ -101,7 +101,8 @@ function publicStaticRoute(config) {
         `across stages, so the build must not contain a stage-specific host. Remove assetPrefix or use a path.`,
     );
   }
-  const prefix = (assetPrefix || config.basePath || "").replace(/\/+$/, "");
+  let prefix = assetPrefix || config.basePath || "";
+  while (prefix.endsWith("/")) prefix = prefix.slice(0, -1);
   return `${prefix}/_next/static`;
 }
 
