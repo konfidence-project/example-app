@@ -93,6 +93,10 @@ jobs:
           go install "github.com/konfidence-project/konfidence/cmd/kden@${KDEN_REF}"
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
+      - name: Test candidates
+        working-directory: services/candidates
+        run: go test ./...
+
       - name: Publish artifacts
         env:
           COMPONENT_CHANNEL: ${{ steps.ver.outputs.channel }}
