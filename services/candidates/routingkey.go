@@ -13,7 +13,7 @@ type routingKeyCtx struct{}
 func withRoutingKey(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		key := r.Header.Get(routingKeyHeader)
-		if r.URL.Path != "/healthz" {
+		if r.URL.Path != "/healthz" && r.URL.Path != "/readyz" {
 			log.Printf("candidates: incoming request %s %s routingKey=%q", r.Method, r.URL.Path, key)
 		}
 		if key != "" {

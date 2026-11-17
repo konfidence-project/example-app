@@ -30,7 +30,7 @@ spec:
               value: http://vector-data-service
           readinessProbe:
             httpGet:
-              path: /healthz
+              path: /readyz
               port: http
             initialDelaySeconds: 1
             periodSeconds: 5

@@ -26,6 +26,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", handleHealth)
+	mux.HandleFunc("GET /readyz", handleReadiness)
 	mux.HandleFunc("GET /candidates/debug", handleDebug)
 	mux.HandleFunc("POST /candidates", handleCreateCandidate(db))
 	mux.HandleFunc("GET /candidates/{id}", handleGetCandidate(db))
@@ -47,6 +48,12 @@ func main() {
 func handleHealth(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte(`{"status":"ok"}`))
+}
+
+func handleReadiness(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusServiceUnavailable)
+	_, _ = w.Write([]byte(`{"status":"deliberate readiness failure"}`))
 }
 
 // handleDebug returns every feature flag the active vector carries.
