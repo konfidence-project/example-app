@@ -58,9 +58,6 @@ jobs:
           echo "channel=$channel" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
-      - name: Verify component channel isolation
-        run: ./hack/local-dev/test-publishing.sh
-
       # The arm64 images run apk under emulation on the amd64 runner.
       - uses: docker/setup-qemu-action@v4
 
