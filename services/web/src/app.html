@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en" data-theme="konfidence">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="%sveltekit.assets%/logos/icon.svg" />
+    <script>
+      // The vendored tokens switch to dark on .dark; follow the OS before first paint.
+      const mq = matchMedia("(prefers-color-scheme: dark)");
+      const apply = () => document.documentElement.classList.toggle("dark", mq.matches);
+      apply();
+      mq.addEventListener("change", apply);
+
+      // The server renders dates in the zone from this cookie. Reload once when it was missing or stale, so the
+      // first page the viewer sees already shows their local times.
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (!document.cookie.split("; ").includes(`tz=${encodeURIComponent(tz)}`)) {
+        document.cookie = `tz=${encodeURIComponent(tz)}; path=/; max-age=31536000; samesite=lax`;
+        try {
+          if (!sessionStorage.getItem("tz-reloaded")) {
+            sessionStorage.setItem("tz-reloaded", "1");
+            location.reload();
+          }
+        } catch {}
+      }
+    </script>
+    %sveltekit.head%
+  </head>
+  <body data-sveltekit-preload-data="hover">
+    <div style="display: contents">%sveltekit.body%</div>
+  </body>
+</html>
