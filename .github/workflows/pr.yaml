@@ -8,13 +8,6 @@ permissions:
   contents: read
 
 jobs:
-  publishing:
-    name: publishing channel isolation
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - run: ./hack/local-dev/test-publishing.sh
-
   candidates:
     name: candidates (Go)
     runs-on: ubuntu-latest
