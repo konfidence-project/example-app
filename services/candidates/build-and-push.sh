@@ -6,6 +6,7 @@ set -euo pipefail
 
 : "${REGISTRY:?set REGISTRY (no scheme)}"
 : "${VERSION:?set VERSION}"
+COMPONENT_CHANNEL="${COMPONENT_CHANNEL:-edge}"
 export REGISTRY VERSION   # kden expands ${REGISTRY}/${VERSION} in the constructor from the env
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SVC=candidates
@@ -50,8 +51,6 @@ find "$DIST/ocm/tasks" -type f -name 'task-manifest.json' -print0 \
   | while IFS= read -r -d '' f; do render "$f"; done
 ( cd "$DIST/ocm" && kden artifact push --registry "https://$REGISTRY" --file component-constructor.yaml )
 
-# Move the floating `edge` alias to this version. The VectorTemplate references
-# :edge, so the controller re-resolves it and rolls out a new vector once edge
-# points at a different component version.
-echo "==> [$SVC] moving edge alias -> $VERSION"
-kden artifact alias "https://$REGISTRY//github.com/konfidence-project/example-app/$SVC:$VERSION" edge
+# Keep fixture publications on their own component channel.
+echo "==> [$SVC] moving $COMPONENT_CHANNEL alias -> $VERSION"
+kden artifact alias "https://$REGISTRY//github.com/konfidence-project/example-app/$SVC:$VERSION" "$COMPONENT_CHANNEL"
