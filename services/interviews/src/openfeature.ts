@@ -31,9 +31,13 @@ export async function isEnabled(
 // allFlags returns every feature flag the active vector carries.
 export async function allFlags(routingKey: string): Promise<Record<string, unknown>> {
   if (!routingKey) return {};
-  const cfg = await OpenFeature.getClient("interviews").getObjectValue(routingKey, {}, {
-    targetingKey: routingKey,
-  });
+  const cfg = await OpenFeature.getClient("interviews").getObjectValue(
+    routingKey,
+    {},
+    {
+      targetingKey: routingKey,
+    },
+  );
   const features = (cfg as { features?: Record<string, unknown> }).features;
   return features ?? {};
 }
@@ -56,20 +60,35 @@ const hostCache = new Map<string, string>();
 // resolveServiceHost returns the cluster authority (host:port) of the deployment result with the given stable name.
 // Throws if the vector has no such result. Evaluating the routing key as a flag key returns the vector config.
 export async function resolveServiceHost(routingKey: string, resultName: string): Promise<string> {
-  if (!routingKey) throw new Error(`cannot resolve result ${resultName}: request has no routing key`);
+  // Local development without Konfidence: a fixed address, for example CANDIDATES_URL=http://localhost:8081.
+  const override = process.env[`${resultName.toUpperCase()}_URL`];
+  if (override) return new URL(override).host;
+  if (!routingKey)
+    throw new Error(`cannot resolve result ${resultName}: request has no routing key`);
 
   const key = `${routingKey}::${resultName}`;
   const cached = hostCache.get(key);
   if (cached !== undefined) return cached;
 
-  console.log(`[discovery] resolving result=${resultName} for routingKey=${routingKey} via OFREP ${OFREP_URL}`);
-  const config = await OpenFeature.getClient("interviews").getObjectValue(routingKey, {}, {
-    targetingKey: routingKey,
-  });
-  const { deploymentResults } = config as unknown as { deploymentResults: Record<string, DeploymentResult[]> };
+  console.log(
+    `[discovery] resolving result=${resultName} for routingKey=${routingKey} via OFREP ${OFREP_URL}`,
+  );
+  const config = await OpenFeature.getClient("interviews").getObjectValue(
+    routingKey,
+    {},
+    {
+      targetingKey: routingKey,
+    },
+  );
+  const { deploymentResults } = config as unknown as {
+    deploymentResults: Record<string, DeploymentResult[]>;
+  };
 
-  const match = Object.values(deploymentResults).flat().find((r) => r.name === resultName);
-  if (!match) throw new Error(`vector ${routingKey} exposes no deployment result named ${resultName}`);
+  const match = Object.values(deploymentResults)
+    .flat()
+    .find((r) => r.name === resultName);
+  if (!match)
+    throw new Error(`vector ${routingKey} exposes no deployment result named ${resultName}`);
 
   const { Namespace, K8sName, ServicePorts } = match.spec;
   if (ServicePorts.length === 0) {

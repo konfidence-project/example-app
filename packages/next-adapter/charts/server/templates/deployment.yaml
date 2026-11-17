@@ -35,6 +35,9 @@ spec:
               value: {{ .Values.port | quote }}
             - name: VECTOR_CONFIG_URL
               value: {{ .Values.vectorConfigUrl }}
+            # Lets the server tell its own deployment result from the services it calls.
+            - name: KONFIDENCE_DEPLOYMENT_RESULT
+              value: "${DEPLOYMENT_RESULT}"
           readinessProbe:
             tcpSocket:
               port: http

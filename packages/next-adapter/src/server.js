@@ -5,10 +5,13 @@
 // up in the vector's deployment results, so the whole request stays inside one
 // vector. These helpers do both, so application code only names the service.
 import { headers } from "next/headers";
+import { devtoolsEnabled, recordHop, selfName } from "./devtools/hops.js";
 
 export const ROUTING_KEY_HEADER = "x-konfidence-routing-key";
 
 const VECTOR_CONFIG_URL = () => process.env.VECTOR_CONFIG_URL ?? "http://vector-data-service";
+const OVERRIDE_PREFIX = "KONFIDENCE_SERVICE_";
+const OVERRIDE_SUFFIX = "_URL";
 
 // Vector data is immutable per routing key, so it is cached for the process lifetime.
 /** @type {Map<string, Promise<any>>} */
@@ -54,13 +57,15 @@ export async function features() {
   return process.env.KONFIDENCE_FEATURES ? JSON.parse(process.env.KONFIDENCE_FEATURES) : {};
 }
 
+const overrideVariable = (name) =>
+  `${OVERRIDE_PREFIX}${name.toUpperCase().replace(/[^A-Z0-9]/g, "_")}${OVERRIDE_SUFFIX}`;
+
 /**
  * Base URL of a service in the current vector, by its deployment-result name.
  * For local development, KONFIDENCE_SERVICE_<NAME>_URL overrides the lookup.
  */
 export async function serviceUrl(name) {
-  const override =
-    process.env[`KONFIDENCE_SERVICE_${name.toUpperCase().replace(/[^A-Z0-9]/g, "_")}_URL`];
+  const override = process.env[overrideVariable(name)];
   if (override) return override.replace(/\/+$/, "");
 
   const data = await vectorData();
@@ -77,8 +82,64 @@ export async function serviceUrl(name) {
   return `http://${K8sName}.${Namespace}.svc.cluster.local:${ServicePorts[0].port}`;
 }
 
+/**
+ * Names of the HTTP services this server can reach: the Kubernetes service
+ * results of the current vector, plus local KONFIDENCE_SERVICE_<NAME>_URL
+ * overrides. Excludes this server itself.
+ */
+export async function serviceNames() {
+  const names = new Set();
+  for (const variable of Object.keys(process.env)) {
+    if (variable.startsWith(OVERRIDE_PREFIX) && variable.endsWith(OVERRIDE_SUFFIX)) {
+      const name = variable.slice(OVERRIDE_PREFIX.length, -OVERRIDE_SUFFIX.length);
+      if (name) names.add(name.toLowerCase().replace(/_/g, "-"));
+    }
+  }
+  const data = await vectorData().catch(() => null);
+  for (const result of Object.values(data?.deploymentResults ?? {}).flat()) {
+    if (result?.spec?.ServicePorts?.length) names.add(result.name);
+  }
+  names.delete(selfName());
+  return [...names].sort();
+}
+
 /** fetch() against a service of the current vector. Forwards the routing key and never caches. */
 export async function serviceFetch(name, path, init = {}) {
+  if (!devtoolsEnabled()) return plainServiceFetch(name, path, init);
+
+  // Devtools are on: the same call, timed and kept in the hop buffer.
+  const key = await routingKey();
+  const method = (init.method ?? "GET").toUpperCase();
+  const started = performance.now();
+  let host = null;
+  try {
+    host = new URL(await serviceUrl(name)).host;
+    const res = await plainServiceFetch(name, path, init);
+    recordHop(
+      { to: name, method, path, host, status: res.status, routingKey: key },
+      performance.now() - started,
+      res,
+      await serviceNames().catch(() => []),
+    );
+    return res;
+  } catch (err) {
+    recordHop(
+      {
+        to: name,
+        method,
+        path,
+        host,
+        status: null,
+        routingKey: key,
+        error: String(err?.message ?? err),
+      },
+      performance.now() - started,
+    );
+    throw err;
+  }
+}
+
+async function plainServiceFetch(name, path, init) {
   const base = await serviceUrl(name);
   const key = await routingKey();
   const requestHeaders = new Headers(init.headers);

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import pg from "pg";
+import type { CreateInterview, ListFilter } from "./query.js";
 
 const { Pool } = pg;
 
@@ -16,25 +17,48 @@ function dsn(): string {
 
 export const pool = new Pool({ connectionString: dsn() });
 
-export async function insertInterview(candidateId: string, slotTime: string, slotType: string): Promise<string> {
-  const id = randomUUID();
-  await pool.query(
-    "INSERT INTO interviews (id, candidate_id, slot_time, slot_type) VALUES ($1, $2, $3, $4)",
-    [id, candidateId, slotTime, slotType],
-  );
-  return id;
-}
+const COLUMNS = "id, candidate_id, slot_time, slot_type, duration_minutes, location, created_at";
 
 export interface InterviewRow {
   id: string;
   candidate_id: string;
   slot_time: string;
   slot_type: string;
+  duration_minutes: number;
+  location: string | null;
+  created_at: string;
 }
 
-export async function listInterviews(): Promise<InterviewRow[]> {
+export async function insertInterview(input: CreateInterview): Promise<InterviewRow> {
   const { rows } = await pool.query<InterviewRow>(
-    "SELECT id, candidate_id, slot_time, slot_type FROM interviews ORDER BY slot_time",
+    `INSERT INTO interviews (id, candidate_id, slot_time, slot_type, duration_minutes, location)
+     VALUES ($1, $2, $3, $4, $5, $6) RETURNING ${COLUMNS}`,
+    [
+      randomUUID(),
+      input.candidateId,
+      input.slotTime,
+      input.slotType,
+      input.durationMinutes,
+      input.location,
+    ],
+  );
+  return rows[0];
+}
+
+export async function listInterviews(filter: ListFilter): Promise<InterviewRow[]> {
+  const where: string[] = [];
+  const params: unknown[] = [];
+  const add = (column: string, op: string, value: unknown) => {
+    params.push(value);
+    where.push(`${column} ${op} $${params.length}`);
+  };
+  if (filter.candidateId) add("candidate_id", "=", filter.candidateId);
+  if (filter.from) add("slot_time", ">=", filter.from);
+  if (filter.to) add("slot_time", "<", filter.to);
+  const conditions = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  const { rows } = await pool.query<InterviewRow>(
+    `SELECT ${COLUMNS} FROM interviews ${conditions} ORDER BY slot_time, id`,
+    params,
   );
   return rows;
 }
