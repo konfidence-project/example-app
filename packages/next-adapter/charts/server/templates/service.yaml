@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app.kubernetes.io/name: ${NAME}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  annotations:
+    # Publishes this Service as a deployment result of the vector, which is
+    # what stage routing and other services resolve it by.
+    konfidence.cloud/deployment-result: ${DEPLOYMENT_RESULT}
+    konfidence.cloud/exposed-port-name: http
+spec:
+  # The release name is the ArtifactDeployment name, so several versions of
+  # this chart in one namespace do not select each other's pods.
+  selector:
+    app.kubernetes.io/name: ${NAME}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

@@ -36,6 +36,28 @@ jobs:
           npm ci
           npx tsc -p . --noEmit
 
+  web:
+    name: web (Next.js)
+    runs-on: ubuntu-latest
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+      VERSION: 0.1.0-pr
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: services/web/package-lock.json
+      - name: Test deployment adapter
+        working-directory: packages/next-adapter
+        run: npm test
+      - name: Install and build frontend
+        working-directory: services/web
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+
   images:
     name: docker build
     runs-on: ubuntu-latest
