@@ -64,7 +64,7 @@ npm run typecheck
 npm run build
 ```
 
-`npm run typecheck` uses the TypeScript 7 compiler (`@typescript/native`). The package `typescript` is the TypeScript 6 API, because typescript-eslint and Next.js still need it.
+`npm run typecheck` uses the TypeScript 7 compiler (the `typescript-native` alias). The package `typescript` is the TypeScript 6 API, because typescript-eslint and Next.js still need it.
 
 `next dev` has no Konfidence routing and no routing key. Point it at locally running services and give it feature flags:
 
