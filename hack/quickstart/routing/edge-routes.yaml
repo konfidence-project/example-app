@@ -5,6 +5,9 @@
 # the subdomain or path, so every stage needs its own route and every exposed
 # deployment result its own rule. set (not add) overwrites client-supplied
 # values, so clients cannot pick another stage or service.
+#
+# Everything outside /candidates and /interviews goes to the web UI. Gateway API
+# picks the longest matching prefix, so the API paths keep reaching their services.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -44,6 +47,22 @@ spec:
                 value: dev-eu12
               - name: x-konfidence-service
                 value: interviews
+      backendRefs:
+        - name: konfidence-router
+          namespace: kden-l-dev
+          port: 80
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            set:
+              - name: x-konfidence-stage
+                value: dev-eu12
+              - name: x-konfidence-service
+                value: web
       backendRefs:
         - name: konfidence-router
           namespace: kden-l-dev
@@ -88,6 +107,22 @@ spec:
                 value: prod-eu12
               - name: x-konfidence-service
                 value: interviews
+      backendRefs:
+        - name: konfidence-router
+          namespace: kden-l-prod
+          port: 80
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            set:
+              - name: x-konfidence-stage
+                value: prod-eu12
+              - name: x-konfidence-service
+                value: web
       backendRefs:
         - name: konfidence-router
           namespace: kden-l-prod

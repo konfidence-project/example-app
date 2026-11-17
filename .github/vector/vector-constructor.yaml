@@ -14,6 +14,9 @@ components:
       - name: interviews
         componentName: github.com/konfidence-project/example-app/interviews
         version: ${VERSION}
+      - name: web
+        componentName: github.com/konfidence-project/example-app/web
+        version: ${VERSION}
     resources:
       - name: cloud-konfidence-vector-config
         type: json

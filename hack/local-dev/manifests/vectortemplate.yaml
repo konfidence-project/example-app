@@ -18,6 +18,7 @@ spec:
   components:
     - name: oci::https://${REGISTRY}//github.com/konfidence-project/example-app/candidates:edge
     - name: oci::https://${REGISTRY}//github.com/konfidence-project/example-app/interviews:edge
+    - name: oci::https://${REGISTRY}//github.com/konfidence-project/example-app/web:edge
   vectorConfig:
     features:
       allow-video-slots: false
