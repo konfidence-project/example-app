@@ -55,19 +55,22 @@ interface DeploymentResult {
   spec: DeploymentResultServiceSpec;
 }
 
-const hostCache = new Map<string, string>();
+const baseUrlCache = new Map<string, string>();
 
-// resolveServiceHost returns the cluster authority (host:port) of the deployment result with the given stable name.
-// Throws if the vector has no such result. Evaluating the routing key as a flag key returns the vector config.
-export async function resolveServiceHost(routingKey: string, resultName: string): Promise<string> {
+// resolveServiceBaseUrl returns the base URL of the deployment result with the given stable name, without a trailing
+// slash. Throws if the vector has no such result. Evaluating the routing key as a flag key returns the vector config.
+export async function resolveServiceBaseUrl(
+  routingKey: string,
+  resultName: string,
+): Promise<string> {
   // Local development without Konfidence: a fixed address, for example CANDIDATES_URL=http://localhost:8081.
   const override = process.env[`${resultName.toUpperCase()}_URL`];
-  if (override) return new URL(override).host;
+  if (override) return override.replace(/\/+$/, "");
   if (!routingKey)
     throw new Error(`cannot resolve result ${resultName}: request has no routing key`);
 
   const key = `${routingKey}::${resultName}`;
-  const cached = hostCache.get(key);
+  const cached = baseUrlCache.get(key);
   if (cached !== undefined) return cached;
 
   console.log(
@@ -94,8 +97,8 @@ export async function resolveServiceHost(routingKey: string, resultName: string)
   if (ServicePorts.length === 0) {
     throw new Error(`deployment result ${resultName} exposes no port`);
   }
-  const authority = `${K8sName}.${Namespace}.svc.cluster.local:${ServicePorts[0].port}`;
-  console.log(`[discovery] resolved result=${resultName} routingKey=${routingKey} -> ${authority}`);
-  hostCache.set(key, authority);
-  return authority;
+  const base = `http://${K8sName}.${Namespace}.svc.cluster.local:${ServicePorts[0].port}`;
+  console.log(`[discovery] resolved result=${resultName} routingKey=${routingKey} -> ${base}`);
+  baseUrlCache.set(key, base);
+  return base;
 }

@@ -1,0 +1,6 @@
+# The Node.js packages that share one lockfile. services/interviews keeps its
+# own npm lockfile: its Dockerfile installs it on its own.
+packages:
+  - packages/next-adapter
+  - services/web
+engineStrict: true

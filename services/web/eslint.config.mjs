@@ -1,6 +1,8 @@
-// Lint rules. The import zones follow bulletproof-react: features never
-// import each other, shared code never imports features or routes, and
-// routes in src/app compose everything.
+// ESLint runs next to Oxlint (oxlint.config.ts) for the two things Oxlint
+// cannot do: the Next.js rules, which ship as ESLint 9 plugins, and the
+// import zones. The zones follow bulletproof-react: features never import
+// each other, shared code never imports features or routes, and routes in
+// src/app compose everything.
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTypescript from "eslint-config-next/typescript";
 
@@ -10,7 +12,7 @@ const config = [
   ...nextVitals,
   ...nextTypescript,
   {
-    ignores: [".next/**", "node_modules/**", "next-env.d.ts"],
+    ignores: [".next/**", "node_modules/**", "next-env.d.ts", "oxlint.config.ts"],
   },
   {
     files: ["src/**/*.{ts,tsx}"],
@@ -41,7 +43,6 @@ const config = [
           ],
         },
       ],
-      "import/no-cycle": "error",
     },
   },
 ];

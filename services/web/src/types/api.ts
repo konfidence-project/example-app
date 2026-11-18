@@ -1,6 +1,7 @@
 // Shapes of the candidates and interviews APIs, shared by every feature.
 
-export type InterviewType = "onsite" | "phone" | "video";
+export const INTERVIEW_TYPES = ["onsite", "phone", "video"] as const;
+export type InterviewType = (typeof INTERVIEW_TYPES)[number];
 
 export interface Candidate {
   id: string;

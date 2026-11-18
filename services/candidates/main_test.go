@@ -126,3 +126,19 @@ func TestUpdateCandidateRejectsNotesWhenTheFlagIsOff(t *testing.T) {
 		t.Errorf("status %d body %s", rec.Code, rec.Body)
 	}
 }
+
+func TestUpdateCandidateRejectsBodyWithoutNotesAndKeepsThem(t *testing.T) {
+	notes := "keep me"
+	s := &fakeStore{candidates: []Candidate{{ID: "a", Name: "Ada Example", Notes: &notes}}}
+	for _, body := range []string{`{}`, `null`, `{"note":"typo"}`} {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPatch, "/candidates/a", strings.NewReader(body))
+		newTestServer(s).ServeHTTP(rec, req)
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("%s: status %d, want 400", body, rec.Code)
+		}
+		if s.candidates[0].Notes == nil || *s.candidates[0].Notes != notes {
+			t.Fatalf("%s: notes changed to %v", body, s.candidates[0].Notes)
+		}
+	}
+}

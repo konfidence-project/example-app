@@ -43,6 +43,8 @@ export function CandidateNotes({ candidateId, notes }: { candidateId: string; no
       <label htmlFor="candidate-notes" className="visually-hidden">
         Notes
       </label>
+      {/* The editor opens after a click on "Edit", so focus follows that click. */}
+      {/* oxlint-disable-next-line jsx-a11y/no-autofocus */}
       <Textarea id="candidate-notes" name="notes" defaultValue={notes} maxLength={2000} autoFocus />
       {state && !state.ok && <FormError>{state.error}</FormError>}
       <div className={styles.notesActions}>

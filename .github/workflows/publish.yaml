@@ -19,7 +19,7 @@ permissions:
   packages: write
 
 env:
-  REGISTRY: ghcr.io/${{ github.repository }}   # ghcr.io/konfidence-project/example-app
+  REGISTRY: ghcr.io/${{ github.repository }} # ghcr.io/konfidence-project/example-app
   FLUX_VERSION: 2.9.5
   # kden has no release with the fixes we need yet (0.0.1-alpha.1 `artifact push`
   # panics; authenticated external-ref resolution for `vector push`), so build it
@@ -32,6 +32,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Compute version
         id: ver

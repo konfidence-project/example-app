@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { unstable_rethrow } from "next/navigation";
 
 import { PageBody, PageHeader } from "@/components/layouts/page-header";
 import { EmptyState, ErrorState } from "@/components/ui/states";
@@ -31,7 +32,10 @@ export default async function PeoplePage({
       (error: unknown) => ({ ok: false as const, error: errorMessage(error) }),
     ),
     // Without interviews the table still works, it just shows no dates.
-    getInterviews({ from: now }).catch(() => null),
+    getInterviews({ from: now }).catch((err: unknown) => {
+      unstable_rethrow(err);
+      return null;
+    }),
   ]);
 
   let body;

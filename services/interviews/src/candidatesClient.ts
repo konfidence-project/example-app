@@ -1,5 +1,5 @@
 import { ROUTING_KEY_HEADER } from "./routingkey.js";
-import { resolveServiceHost } from "./openfeature.js";
+import { resolveServiceBaseUrl } from "./openfeature.js";
 
 // Stable deployment-result name of the candidates Service (konfidence.cloud/deployment-result).
 const CANDIDATES_RESULT = "candidates";
@@ -13,9 +13,12 @@ export interface Candidate {
 
 // fetchCandidate resolves the candidates address from the vector's deployment results and GETs the candidate.
 // Returns the candidate, null if it does not exist (404), or throws if candidates is unreachable.
-export async function fetchCandidate(candidateId: string, routingKey: string): Promise<Candidate | null> {
-  const authority = await resolveServiceHost(routingKey, CANDIDATES_RESULT);
-  const url = `http://${authority}/candidates/${encodeURIComponent(candidateId)}`;
+export async function fetchCandidate(
+  candidateId: string,
+  routingKey: string,
+): Promise<Candidate | null> {
+  const base = await resolveServiceBaseUrl(routingKey, CANDIDATES_RESULT);
+  const url = `${base}/candidates/${encodeURIComponent(candidateId)}`;
   const headers: Record<string, string> = { Accept: "application/json" };
   if (routingKey) headers[ROUTING_KEY_HEADER] = routingKey;
 

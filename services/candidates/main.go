@@ -160,28 +160,35 @@ func handleGetCandidate(db store) http.HandlerFunc {
 	}
 }
 
-type updateCandidateRequest struct {
-	Notes *string `json:"notes"`
-}
-
 // handleUpdateCandidate changes the notes of a candidate. Like on create,
-// notes are only accepted when enable-candidate-notes is on. An empty string
-// or null clears them.
+// notes are only accepted when enable-candidate-notes is on. Null, an empty
+// or a blank string clears them.
+//
+// The example app has no users, so there is no identity or permission check:
+// whoever reaches the service can change notes. Do not put real personal data
+// into it.
 func handleUpdateCandidate(db store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req updateCandidateRequest
+		// A map tells a missing "notes" key from an explicit null, so a typo in
+		// the field name cannot clear the notes.
+		var req map[string]*string
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid json")
 			return
+		}
+		notes, ok := req["notes"]
+		if !ok {
+			writeError(w, http.StatusBadRequest, "notes is required, use null to clear them")
+			return
+		}
+		if notes != nil && strings.TrimSpace(*notes) == "" {
+			notes = nil
 		}
 		if !isEnabled(r.Context(), "enable-candidate-notes", false) {
 			writeError(w, http.StatusBadRequest, "notes field is not enabled")
 			return
 		}
-		if req.Notes != nil && strings.TrimSpace(*req.Notes) == "" {
-			req.Notes = nil
-		}
-		c, err := db.UpdateNotes(r.Context(), r.PathValue("id"), req.Notes)
+		c, err := db.UpdateNotes(r.Context(), r.PathValue("id"), notes)
 		if err != nil {
 			if errors.Is(err, errInvalidID) {
 				writeError(w, http.StatusBadRequest, "invalid candidate id")

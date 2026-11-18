@@ -3,18 +3,23 @@
   "version": "0.1.0",
   "private": true,
   "description": "Konfidence example app: web frontend (Next.js)",
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint .",
-    "typecheck": "node node_modules/typescript-native/bin/tsc --noEmit",
-    "check": "npm run lint && npm run typecheck",
+    "check": "node ./node_modules/typescript-native/bin/tsc -p ./tsconfig.json --noEmit",
+    "lint": "oxlint && eslint .",
+    "lint:fix": "oxlint --fix && eslint . --fix",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
+    "test": "vitest run",
+    "verify": "pnpm check && pnpm lint && pnpm fmt:check && pnpm test",
     "konfidence:package": "konfidence-next package",
     "konfidence:publish": "konfidence-next publish"
   },
   "dependencies": {
-    "@konfidence/next-adapter": "file:../../packages/next-adapter",
+    "@konfidence/next-adapter": "workspace:*",
     "next": "16.4.6",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
@@ -25,13 +30,17 @@
     "@types/react-dom": "^19.3.0",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.4.6",
-    "typescript": "npm:@typescript/typescript6@^6.0.2",
-    "typescript-native": "npm:typescript@^7.0.2"
+    "oxfmt": "^0.77.0",
+    "oxlint": "^1.92.0",
+    "typescript": "^6.0.3",
+    "typescript-native": "npm:typescript@^7.0.2",
+    "vitest": "5.1.0"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=24.15.0"
   },
   "konfidence": {
-    "component": "github.com/konfidence-project/example-app/web"
+    "component": "github.com/konfidence-project/example-app/web",
+    "healthPath": "/api/healthz"
   }
 }

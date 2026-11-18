@@ -24,13 +24,13 @@ The routing key is read from the `X-Konfidence-Routing-Key` request header.
 
 ## Env
 
-| Name                                                                  | Default                                                                                                   |
-| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `LISTEN_PORT`                                                         | `8080`                                                                                                    |
-| `VECTOR_CONFIG_URL`                                                   | `http://vector-data-service`                                                                              |
-| `CANDIDATES_URL`                                                      | unset. Local development only: fixed URL of `candidates`, used instead of the vector's deployment results |
-| `DATABASE_URL`                                                        | unset                                                                                                     |
-| `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`, `PGSSLMODE` | unset                                                                                                     |
+| Name                                                                  | Default                                                                                                                                         |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `LISTEN_PORT`                                                         | `8080`                                                                                                                                          |
+| `VECTOR_CONFIG_URL`                                                   | `http://vector-data-service`                                                                                                                    |
+| `CANDIDATES_URL`                                                      | unset. Local development only: base URL of `candidates` (scheme, host, port and path are kept), used instead of the vector's deployment results |
+| `DATABASE_URL`                                                        | unset                                                                                                                                           |
+| `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`, `PGSSLMODE` | unset                                                                                                                                           |
 
 ## Local run
 

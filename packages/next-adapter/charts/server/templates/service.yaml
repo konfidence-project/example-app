@@ -3,8 +3,7 @@ kind: Service
 metadata:
   name: {{ .Release.Name }}
   labels:
-    app.kubernetes.io/name: ${NAME}
-    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "server.labels" . | nindent 4 }}
   annotations:
     # Publishes this Service as a deployment result of the vector, which is
     # what stage routing and other services resolve it by.
@@ -14,9 +13,9 @@ spec:
   # The release name is the ArtifactDeployment name, so several versions of
   # this chart in one namespace do not select each other's pods.
   selector:
-    app.kubernetes.io/name: ${NAME}
-    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "server.selectorLabels" . | nindent 4 }}
   ports:
     - name: http
       port: 80
       targetPort: http
+      protocol: TCP

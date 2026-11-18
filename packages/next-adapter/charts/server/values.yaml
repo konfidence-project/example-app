@@ -6,14 +6,19 @@ image:
   pullPolicy: IfNotPresent
 
 replicas: 1
+# -- Port the server listens on. Also sets PORT, so the ConfigMap cannot change it.
 port: ${PORT}
 
-# Where the server finds the data of the vector it belongs to.
-vectorConfigUrl: http://vector-data-service
+# -- Base URL of the vector data service. Empty uses VECTOR_CONFIG_URL from
+# the ConfigMap, or http://vector-data-service when that is unset too.
+vectorConfigUrl: ""
 
 # Optional ConfigMap in the landscape namespace with settings that differ per
 # landscape. The Deployment starts without it.
 configMapName: ${NAME}-config
+
+# -- Path the readiness and liveness probes GET.
+healthPath: "${HEALTH_PATH}"
 
 resources:
   requests:
@@ -22,3 +27,4 @@ resources:
   limits:
     cpu: "1"
     memory: 512Mi
+

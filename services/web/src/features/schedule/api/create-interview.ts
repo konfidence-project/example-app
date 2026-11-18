@@ -25,7 +25,7 @@ export async function createInterview(
   const location = String(form.get("location") ?? "").trim();
 
   if (!candidateId) return { ok: false, error: "Choose a candidate." };
-  if (!isDateKey(date)) return { ok: false, error: "Enter a date." };
+  if (!isDateKey(date)) return { ok: false, error: "Enter a valid date." };
   if (!isTime(time)) return { ok: false, error: "Enter a time as HH:MM." };
   if (!isInterviewType(type)) return { ok: false, error: "Choose a type." };
   if (!(DURATIONS as readonly number[]).includes(duration))

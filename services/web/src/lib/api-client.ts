@@ -1,5 +1,6 @@
 import "server-only";
 import { serviceFetch } from "@konfidence/next-adapter/server";
+import { unstable_rethrow } from "next/navigation";
 
 // Server-side client for the backend services. serviceFetch() finds the
 // service in the vector that serves the current request and forwards the
@@ -23,8 +24,11 @@ async function request<T>(service: ServiceName, path: string, init?: RequestInit
   try {
     res = await serviceFetch(service, path, init);
   } catch (err) {
-    const reason = err instanceof Error ? err.message : String(err);
-    throw new ApiError(`The ${service} service is not reachable (${reason})`, service, null);
+    // Errors Next.js uses for control flow (dynamic rendering, redirects)
+    // pass through untouched.
+    unstable_rethrow(err);
+    console.error(`${service} request failed:`, err);
+    throw new ApiError(`The ${service} service is not reachable.`, service, null);
   }
   const body = (await res.json().catch(() => null)) as { error?: unknown } | null;
   if (!res.ok) {
@@ -35,25 +39,22 @@ async function request<T>(service: ServiceName, path: string, init?: RequestInit
   return body as T;
 }
 
+const json = (method: string, body: unknown): RequestInit => ({
+  method,
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify(body),
+});
+
 export const api = {
   get: <T>(service: ServiceName, path: string) => request<T>(service, path),
   post: <T>(service: ServiceName, path: string, body: unknown) =>
-    request<T>(service, path, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(body),
-    }),
+    request<T>(service, path, json("POST", body)),
   patch: <T>(service: ServiceName, path: string, body: unknown) =>
-    request<T>(service, path, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(body),
-    }),
+    request<T>(service, path, json("PATCH", body)),
 };
 
 /** A message for the user, from any error a request can throw. */
 export function errorMessage(err: unknown): string {
-  if (err instanceof ApiError) return err.message;
-  if (err instanceof Error) return err.message;
-  return String(err);
+  unstable_rethrow(err);
+  return err instanceof Error ? err.message : String(err);
 }

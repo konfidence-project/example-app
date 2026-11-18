@@ -31,6 +31,10 @@ Start with [`packages/next-adapter/README.md`](packages/next-adapter/README.md).
 The frontend is not part of the default pipeline or the quickstart yet. Publish
 it with `WITH_WEB=1 ./hack/local-dev/02-pipeline.sh`.
 
+`services/web` and `packages/next-adapter` form a pnpm workspace with Node.js
+24.15.0 and pnpm 11.9.0 pinned by Hermit in `bin/`, matching the Konfidence
+repository. `pnpm install && pnpm verify` at the root checks both.
+
 For development and routing requirements, see
 [`services/web/README.md`](services/web/README.md). A landscape without a
 static content deployer can use

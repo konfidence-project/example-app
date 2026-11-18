@@ -12,57 +12,81 @@ jobs:
     name: candidates (Go)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - &checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-go@v7
         with:
           go-version-file: services/candidates/go.mod
-      - name: vet + build
+      - name: vet + test + build
         working-directory: services/candidates
         run: |
           go vet ./...
+          go test ./...
           go build ./...
 
   interviews:
     name: interviews (TypeScript)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - *checkout
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
-      - name: install + typecheck
+          node-version: 24.15.0
+      - name: install + typecheck + test
         working-directory: services/interviews
         run: |
           npm ci
           npx tsc -p . --noEmit
+          npm test
 
   web:
-    name: web (Next.js)
+    name: web + next-adapter (pnpm workspace)
     runs-on: ubuntu-latest
     env:
       NEXT_TELEMETRY_DISABLED: 1
       VERSION: 0.1.0-pr
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - *checkout
+      # Same pins as bin/hermit.hcl and the Konfidence repository.
+      - &install-pnpm
+        uses: pnpm/action-setup@v6
         with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: services/web/package-lock.json
-      - name: Test deployment adapter
-        working-directory: packages/next-adapter
-        run: npm test
-      - name: Install and build frontend
-        working-directory: services/web
-        run: |
-          npm ci --no-audit --no-fund
-          npm run build
+          version: 11.9.0
+      - &setup-node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24.15.0
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck, lint, format check, test
+        run: pnpm verify
+
+  web-artifacts:
+    name: web artifacts (package, chart, image, smoke test)
+    runs-on: ubuntu-latest
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+      VERSION: 0.1.0-pr
+    steps:
+      - *checkout
+      - *install-pnpm
+      - *setup-node
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      # next build, konfidence-next package (no registry access), helm lint
+      # and template, docker build of the generated context, and a smoke test
+      # of the image with the chart's security settings.
+      - name: Verify generated artifacts
+        run: pnpm verify:artifacts
 
   images:
     name: docker build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - *checkout
       # Build both platforms the publish workflow pushes, so an arm64-only
       # breakage fails here instead of on Apple Silicon quickstart clusters.
       - uses: docker/setup-qemu-action@v4
@@ -77,5 +101,5 @@ jobs:
     name: REUSE compliance
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - *checkout
       - uses: fsfe/reuse-action@v6

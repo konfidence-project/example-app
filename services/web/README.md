@@ -35,6 +35,7 @@ src/
 ├── app/                     routes only: fetch data, compose features
 │   ├── schedule/            page, loading, error
 │   ├── people/              page, loading, error, [id]/
+│   ├── api/healthz/route.ts the probe path of the generated chart
 │   └── api/konfidence/devtools/route.ts
 ├── features/
 │   ├── schedule/            interviews: api/, components/, types/, utils/
@@ -45,7 +46,7 @@ src/
 │   └── interview-type-badge.tsx
 ├── config/                  env.ts (server settings), paths.ts (every route)
 ├── lib/                     api-client.ts around serviceFetch(), flags.ts
-├── types/                   API shapes shared by both features
+├── types/                   API shapes shared by both features, and their decoders
 ├── utils/                   time zone arithmetic, formatting, form submit helper
 └── styles/globals.css       design tokens for light and dark
 ```
@@ -56,15 +57,20 @@ Styling is plain CSS: tokens as custom properties in `src/styles/globals.css`, o
 
 ## Develop
 
+`services/web` and `packages/next-adapter` are one pnpm workspace with one lockfile at the repository root. Node.js 24.15.0 and pnpm 11.9.0 are pinned with Hermit in `bin/`, the same versions the Konfidence repository uses. Activate them with `. bin/activate-hermit`, or install those versions yourself.
+
 ```bash
-npm install
-npm run dev
-npm run lint
-npm run typecheck
-npm run build
+# at the repository root
+. bin/activate-hermit
+pnpm install          # also builds the adapter into packages/next-adapter/dist
+pnpm web:dev
+pnpm web:verify       # check, lint, fmt:check, test
+pnpm web:build
+pnpm verify           # adapter and web
+pnpm verify:artifacts # next build, package, helm lint and template, image build and smoke test
 ```
 
-`npm run typecheck` uses the TypeScript 7 compiler (the `typescript-native` alias). The package `typescript` is the TypeScript 6 API, because typescript-eslint and Next.js still need it.
+The tooling follows the Konfidence dashboard. `check` runs the TypeScript 7 compiler (the `typescript-native` alias), the package `typescript` is the TypeScript 6 API that Next.js and typescript-eslint still need. `lint` runs Oxlint, then ESLint 9 for the Next.js rules and the import zones Oxlint has no equivalent for. `fmt` and `fmt:check` run Oxfmt. `test` runs Vitest, tests sit next to the code as `*.test.ts`.
 
 `next dev` has no Konfidence routing and no routing key. Point it at locally running services and give it feature flags:
 
@@ -79,7 +85,7 @@ Without a routing key the backends read every flag as off. So with the flags abo
 
 `interviews` needs `CANDIDATES_URL` to reach `candidates` without Konfidence, see its README.
 
-After a change in `packages/next-adapter`, take a fresh copy of it: `rm -r node_modules/@konfidence/next-adapter && npm install`. `npm ci` does the same.
+The adapter is linked from `packages/next-adapter`, and the app imports its compiled `dist/`. After a change in the adapter, run `pnpm --filter @konfidence/next-adapter build`.
 
 ## Publish
 
@@ -87,7 +93,7 @@ After a change in `packages/next-adapter`, take a fresh copy of it: `rm -r node_
 REGISTRY=my-registry.example.com/my-org/example-app VERSION=0.1.0-dev ./build-and-push.sh
 ```
 
-This publishes two OCM components: `web` (`helm.konfidence.cloud`) and `web-static` (`s3.konfidence.cloud`). Needs Node 22 or newer, `docker`, `helm` and `kden`.
+This publishes two OCM components: `web` (`helm.konfidence.cloud`) and `web-static` (`s3.konfidence.cloud`). Needs Node.js 24.15.0 and pnpm 11.9.0 (activated from `bin/` when present), `docker`, `helm` and `kden`.
 
 `KONFIDENCE_PUBLISH_ARGS=--no-static-in-image` leaves `/_next/static` out of the server image, for a landscape that serves it from the bucket.
 
@@ -116,4 +122,18 @@ The pages themselves no longer call `/candidates` or `/interviews` from the brow
 | `KONFIDENCE_SERVICE_<NAME>_URL` | unset                        | Local development only: fixed URL of a service         |
 | `KONFIDENCE_FEATURES`           | unset                        | Local development only: feature flags as JSON          |
 
-In a landscape, set these in the ConfigMap `web-config`. The generated chart reads it.
+In a landscape, set `APP_TIME_ZONE`, `KONFIDENCE_DEVTOOLS` and `VECTOR_CONFIG_URL` in the ConfigMap `web-config`. The generated chart reads it with `envFrom`.
+
+`PORT` is not read from the ConfigMap: the chart sets it from its `port` value, because it has to match the container port and the probes. The chart value `vectorConfigUrl` is empty by default. When it is set, it wins over `VECTOR_CONFIG_URL` in the ConfigMap, because explicit container `env` wins over `envFrom`.
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: web-config
+data:
+  APP_TIME_ZONE: "Europe/Berlin"
+  VECTOR_CONFIG_URL: "http://vector-data-service"
+```
+
+The server checks `APP_TIME_ZONE`, `VECTOR_CONFIG_URL`, `KONFIDENCE_SERVICE_<NAME>_URL` and `KONFIDENCE_FEATURES` and fails with a message naming the variable when one is malformed.

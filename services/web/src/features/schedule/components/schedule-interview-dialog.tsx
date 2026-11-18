@@ -48,7 +48,7 @@ export function ScheduleInterviewDialog(props: ScheduleInterviewDialogProps) {
         open={open}
         onClose={() => setOpen(false)}
         title="Schedule interview"
-        description="The candidate gets the invite once it's saved."
+        description="Adds the interview to the schedule. The app sends no invitation."
       >
         <ScheduleForm key={session} {...props} onDone={() => setOpen(false)} />
       </Dialog>
@@ -85,7 +85,7 @@ function ScheduleForm({
             <FormError>Candidates could not be loaded: {candidatesError}</FormError>
           ) : (
             <p className={styles.dialogText}>
-              There is no candidate to invite yet.{" "}
+              There is no candidate to schedule yet.{" "}
               <Link href={paths.people.href}>Add a candidate</Link> first.
             </p>
           )}
@@ -104,7 +104,7 @@ function ScheduleForm({
           <Select
             id={`${id}-candidate`}
             name="candidateId"
-            defaultValue={candidateId ?? candidates[0].id}
+            defaultValue={candidateId ?? candidates[0]?.id}
             required
             data-autofocus
           >

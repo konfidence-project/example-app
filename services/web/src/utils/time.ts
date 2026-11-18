@@ -36,10 +36,12 @@ function zonedParts(date: Date, timeZone: string) {
   };
 }
 
-export const isDateKey = (value: unknown): value is DateKey =>
-  typeof value === "string" &&
-  DATE_KEY.test(value) &&
-  !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
+/** A real calendar date as YYYY-MM-DD. 2026-02-30 fails: it would roll over to March. */
+export const isDateKey = (value: unknown): value is DateKey => {
+  if (typeof value !== "string" || !DATE_KEY.test(value)) return false;
+  const d = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value;
+};
 
 export const isTime = (value: unknown): value is string =>
   typeof value === "string" && TIME.test(value);
@@ -72,8 +74,8 @@ export function weekStartOf(key: DateKey): DateKey {
 
 /** The instant at which the wall clock in timeZone shows key and time (HH:MM). */
 export function zonedToUtc(key: DateKey, time: string, timeZone: string): Date {
-  const [y, m, d] = key.split("-").map(Number);
-  const [hh, mm] = time.split(":").map(Number);
+  const [y = 0, m = 1, d = 1] = key.split("-").map(Number);
+  const [hh = 0, mm = 0] = time.split(":").map(Number);
   const wall = Date.UTC(y, m - 1, d, hh, mm);
   const offsetAt = (instant: number) => {
     const p = zonedParts(new Date(instant), timeZone);

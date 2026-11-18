@@ -41,6 +41,9 @@ export function Dialog({
   }, [open]);
 
   return (
+    // A click on the backdrop closes the dialog. Keyboard users close it with
+    // Escape (onCancel) or the close button, so the click needs no key handler.
+    // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
     <dialog
       ref={ref}
       className={styles.dialog}

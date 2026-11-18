@@ -12,20 +12,27 @@ set -euo pipefail
 : "${VERSION:?set VERSION}"
 export REGISTRY VERSION
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$ROOT"
+REPO="$(cd "$ROOT/../.." && pwd)"
+
+# Hermit pins Node.js and pnpm for the whole repository, see bin/hermit.hcl.
+if [[ -f "$REPO/bin/activate-hermit" ]]; then
+	# shellcheck disable=SC1091
+	source "$REPO/bin/activate-hermit"
+fi
 
 echo "==> [web] installing dependencies"
-# `npm ci` also takes a fresh copy of the adapter from ../../packages.
-npm ci --no-audit --no-fund
+# One lockfile for the workspace. The adapter is linked from packages/.
+(cd "$REPO" && pnpm install --frozen-lockfile)
 
+cd "$ROOT"
 # The adapter runs inside the build. It records what was built and stages the
 # static files in .next/konfidence/.
 echo "==> [web] building"
-npx next build
+pnpm exec next build
 
 # Builds and pushes the server image and its chart, then pushes two OCM
 # components: web (helm.konfidence.cloud) and web-static (s3.konfidence.cloud).
 # KONFIDENCE_PUBLISH_ARGS takes extra options, for example --no-static-in-image
 # for a landscape that serves /_next/static from object storage.
 # shellcheck disable=SC2086
-npx konfidence-next publish ${KONFIDENCE_PUBLISH_ARGS:-}
+pnpm exec konfidence-next publish ${KONFIDENCE_PUBLISH_ARGS:-}

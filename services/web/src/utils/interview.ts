@@ -1,9 +1,9 @@
-import type { InterviewType } from "@/types/api";
+import { INTERVIEW_TYPES, type InterviewType } from "@/types/api";
 
-export const INTERVIEW_TYPES: InterviewType[] = ["onsite", "phone", "video"];
+export { INTERVIEW_TYPES };
 
 export const isInterviewType = (value: unknown): value is InterviewType =>
-  typeof value === "string" && (INTERVIEW_TYPES as string[]).includes(value);
+  typeof value === "string" && (INTERVIEW_TYPES as readonly string[]).includes(value);
 
 export const TYPE_LABEL: Record<InterviewType, string> = {
   onsite: "Onsite",
@@ -15,14 +15,14 @@ export const TYPE_LABEL: Record<InterviewType, string> = {
 export const TYPE_HINT: Record<InterviewType, string> = {
   onsite: "In the office",
   phone: "We call them",
-  video: "Link in the invite",
+  video: "Video call",
 };
 
 /** What to show where an interview has no location of its own. */
 export const TYPE_PLACE: Record<InterviewType, string> = {
   onsite: "In the office",
   phone: "We call the candidate",
-  video: "Link sent with the invite",
+  video: "Video call",
 };
 
 /** The types the current stage offers. */

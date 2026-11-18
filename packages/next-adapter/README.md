@@ -32,8 +32,8 @@ Three additions to a Next.js app, shown in [`services/web`](../../services/web).
 
    ```bash
    export REGISTRY=ghcr.io/acme/shop VERSION=1.4.0
-   npx next build
-   npx konfidence-next publish
+   pnpm exec next build
+   pnpm exec konfidence-next publish
    ```
 
 You write no Dockerfile, no chart and no OCM constructor. The adapter generates them into `.next/konfidence/`, where you can read them. `konfidence-next package` generates without pushing anything.
@@ -74,7 +74,7 @@ For `next dev` without a cluster, set `KONFIDENCE_SERVICE_<NAME>_URL` and `KONFI
 
 ## Devtools
 
-A floating widget that shows how a request travelled through the vector: which stage and routing key it carried, which services the server called and how long they took, which flags each service sees, and where the static files came from. It is meant for demos and debugging, and it stays out of the app.
+A floating widget that shows how a request travelled through the vector: which routing key it carried, which services the server called and how long they took, which flags each service sees, and where the static files came from. It is meant for demos and debugging, and it stays out of the app.
 
 ### Turn it on
 
@@ -99,26 +99,26 @@ A floating widget that shows how a request travelled through the vector: which s
 
 When the variable is unset, the component renders nothing, the browser loads none of the widget code, `serviceFetch()` records nothing, and the endpoint answers 404. A page that Next.js prerenders at build time reads the variable at build time. Pages rendered per request read it per request.
 
-The endpoint shows internal host names and the vector document. Turn it on only where that is fine to show.
+The endpoint shows feature flags, authored configuration, internal service URLs, pod name and build id to anyone who reaches it. Turn it on only in demo and development landscapes.
 
 ### What it shows
 
 The widget mounts in a shadow root with its own React root and its own styles, so app CSS and widget CSS cannot reach each other. Closed, it is a small button in the bottom right corner (`position="bottom-left"` moves it). Open, it is a panel docked to the bottom of the window with a dark tooling look. Drag its top edge to resize it. Open state, active tab, height and the Live switch are kept in `localStorage` under `konfidence-devtools`.
 
-| Tab          | Content                                                                                                                                                                                           |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Request path | Browser, edge and router, static files, this server and every service, with hop counts and average latency per edge. Browser numbers come from this tab's resource timing                         |
-| Vector       | Stage, routing key, build. The flags from the vector data next to the flags each service reports on `/<name>/debug`, with reachability and latency. Service URLs resolved from deployment results |
-| Hops         | The hop buffer: time, from and to, request, host or error, status, latency, and whether the call carried this request's routing key                                                               |
-| Static files | Whether `/_next/static` came from object storage or the server, the bucket directory and vector the static handler reported, the static content results of the vector, build of server and page   |
+| Tab          | Content                                                                                                                                                                                         |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Request path | Browser, edge and router, static files, this server and every service, with hop counts and average latency per edge. Browser numbers come from this tab's resource timing                       |
+| Vector       | Routing key, build. The flags from the vector data next to the flags each service reports on `/<name>/debug`, with reachability and latency. How each service was resolved                      |
+| Hops         | The hops of this routing key: time, from and to, request, error, status, latency                                                                                                                |
+| Static files | Whether `/_next/static` came from object storage or the server, the bucket directory and vector the static handler reported, the routes of the static content results, build of server and page |
 
 While the panel is open and Live is on, the widget polls the endpoint every 3 seconds. Refresh polls once.
 
 ### Hops
 
-With devtools on, `serviceFetch()` records every call in a buffer of the last 40 calls: target, method, path, resolved host, status, latency, error text, and routing key. For a status of 400 or more, the `error` field of the JSON body becomes the error text.
+With devtools on, `serviceFetch()` records every call in a buffer of the last 40 calls: target, method, path, resolved host, status, latency, error text, and routing key. The endpoint returns only the hops with the caller's routing key. For a status of 400 or more, the `error` field of the JSON body becomes the error text.
 
-The buffer lives in the server process. With more than one pod, each pod keeps its own, and the widget shows the buffer of the pod that answered the poll. The panel says so.
+The buffer lives in the server process. With more than one pod, each pod keeps its own, and the widget shows the buffer of the pod that answered the poll. The panel says so. Other routing keys share the buffer, so a busy pod can push this key's calls out.
 
 Some calls happen between services, out of sight of this server. The adapter derives them from responses as **implied hops**: a property `x` whose value is an object with an `id`, in a JSON response of service A, counts as a call from A to the service `xs` with `GET /xs/<id>`, if the vector has a service of that name. A `null` value counts as a failed call. In the example app every interview from `GET /interviews` embeds its `candidate`, so each one implies `interviews → candidates`. Implied hops have no latency.
 
@@ -140,25 +140,24 @@ The endpoint calls `/<name>/debug` of every service on each poll. Those calls sk
     "node": "22.12.0",
   },
   "request": {
-    "routingKey": "dev-5kjvlb7n656d5", // null outside Konfidence
-    "stage": "dev", // x-konfidence-stage header, null when absent
+    // null outside Konfidence. The router strips the stage header before
+    // the request reaches the server, so the stage is not part of it.
+    "routingKey": "dev-5kjvlb7n656d5",
   },
   "vector": {
     // null without a routing key
     "features": { "allow-video-slots": false },
-    "authored": null,
-    "deploymentResults": {
-      "interviews": [{ "name": "interviews", "type": "http-k8s-service", "spec": {} }],
-    },
+    "authored": { "...": "..." }, // the vector's authored configuration
+    "deploymentResults": { "interviews": [{ "name": "interviews", "type": "...", "spec": {} }] },
   },
-  "vectorError": null, // message when the vector data service failed
+  "vectorError": null, // error message when the vector data service failed
   "localFeatures": null, // KONFIDENCE_FEATURES when there is no vector
   "services": [
     {
       "name": "interviews",
-      "url": "http://interviews-0-1-0-demo-3-c9df.kden-l-dev.svc.cluster.local:80",
+      "url": "http://interviews-x.dev.svc.cluster.local:80", // null when unresolved
       "source": "deployment-result", // or "env" for KONFIDENCE_SERVICE_<NAME>_URL
-      "error": null, // set when the URL could not be resolved
+      "error": null, // set when the service could not be resolved
       "probe": {
         // GET /<name>/debug, null when unresolved
         "path": "/interviews/debug",
@@ -168,7 +167,7 @@ The endpoint calls `/<name>/debug` of every service on each poll. Those calls sk
         "runtime": "Node 26.1.0", // the debug response's runtime field
         "routingKey": "dev-5kjvlb7n656d5",
         "flags": { "allow-video-slots": false },
-        "error": null,
+        "error": null, // "responded <status>" or the fetch error
       },
     },
   ],
@@ -179,9 +178,9 @@ The endpoint calls `/<name>/debug` of every service on each poll. Those calls sk
       "name": "next-static",
       "type": "s3.konfidence.cloud/v1alpha1",
       "route": "/_next/static",
-      "bucket": "nextjs-demo-static",
-      "prefix": "dev/_k/web-static-0-1-0-demo-3-k89/next-static/",
-      "endpoint": "http://minio.demo-s3.svc.cluster.local:9000",
+      "bucket": "web-static", // null unless the result names one
+      "prefix": "0.1.0/",
+      "endpoint": "http://minio",
     },
   ],
   "hops": [
@@ -193,8 +192,8 @@ The endpoint calls `/<name>/debug` of every service on each poll. Those calls sk
       "from": "web",
       "to": "interviews",
       "method": "GET",
-      "path": "/interviews?from=2026-11-16T00%3A00%3A00.000Z",
-      "host": "interviews-0-1-0-demo-3-c9df.kden-l-dev.svc.cluster.local:80",
+      "path": "/interviews?from=2026-11-16T00:00:00.000Z",
+      "host": "interviews-x.dev.svc.cluster.local:80",
       "status": 200, // null when the call failed
       "latencyMs": 14, // null for implied hops
       "error": null,
@@ -202,11 +201,11 @@ The endpoint calls `/<name>/debug` of every service on each poll. Those calls sk
       "impliedBy": null, // id of the hop whose response implied this one
     },
   ],
-  "buffer": { "size": 40, "scope": "pod" },
+  "buffer": { "size": 40, "scope": "pod+routing-key" },
 }
 ```
 
-Fields are only added within `v1`. A change that removes or renames a field gets a new `schema` value. The endpoint answers with `cache-control: no-store`, and with 404 when devtools are off.
+Fields are only added within `v1`. A change that removes or renames a field gets a new `schema` value. This version removed `request.stage`, which the router never forwards. The endpoint answers with `cache-control: no-store`, and with 404 when devtools are off.
 
 A service that wants its flags in the Vector tab answers `GET /<name>/debug` with `{ "flags": {...}, "routingKey": "...", "runtime": "..." }`. The example services do.
 
@@ -222,7 +221,9 @@ A service that wants its flags in the Vector tab answers `GET /<name>/debug` wit
 └── static.component-constructor.yaml    OCM component <component>-static
 ```
 
-The chart's Service carries `konfidence.cloud/deployment-result: <name>`. The Deployment sets `KONFIDENCE_DEPLOYMENT_RESULT` to the same name, and reads an optional ConfigMap `<name>-config` from the landscape namespace for settings that differ per landscape, `KONFIDENCE_DEVTOOLS` for example.
+The chart's Service carries `konfidence.cloud/deployment-result: <name>`. The Deployment sets `KONFIDENCE_DEPLOYMENT_RESULT` to the same name, and reads an optional ConfigMap `<name>-config` from the landscape namespace for settings that differ per landscape, `KONFIDENCE_DEVTOOLS` for example. `PORT` comes from the chart value `port` and cannot be changed in the ConfigMap. `VECTOR_CONFIG_URL` can be, unless the chart value `vectorConfigUrl` is set, which wins.
+
+The pod meets the Kubernetes "restricted" Pod Security Standard: it runs as UID 1000 with the `RuntimeDefault` seccomp profile, drops all capabilities, forbids privilege escalation, does not mount a service account token, and has a read-only root filesystem. The Next.js cache directory and `/tmp` are `emptyDir` volumes. The adapter turns off `experimental.isrFlushToDisk`, so revalidated pages stay in memory instead of being written back into the image. The probes are HTTP GETs on `healthPath` (default `/`). Labels follow the Konfidence chart (`helm.sh/chart`, `app.kubernetes.io/*`).
 
 The adapter works with the app in `app/` or in `src/app/`. It reads the build output and `public/` at the project root, not the source layout.
 
@@ -240,17 +241,18 @@ All optional except `component`, under `konfidence` in `package.json`:
 | `deploymentResult` | `name`                      | Name other services resolve the server by |
 | `provider`         | `konfidence-project`        | OCM provider                              |
 | `port`             | `3000`                      | Container port                            |
+| `healthPath`       | `/`                         | Path the probes GET                       |
 
 Environment variables for `konfidence-next publish`:
 
-| Variable                              | Default                    | Meaning                                                                                                          |
-| ------------------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `REGISTRY`                            | required                   | Repository prefix without scheme                                                                                 |
-| `VERSION`                             | required                   | Artifact version. Must be set for `next build` too                                                               |
-| `PLATFORMS`                           | `linux/amd64,linux/arm64`  | Image platforms                                                                                                  |
-| `KONFIDENCE_REGISTRY_URL`             | `https://$REGISTRY`        | OCM repository URL. With `http://`, the chart and image references in the component are marked as plain HTTP too |
-| `HELM_PUSH_ARGS`, `DOCKER_BUILD_ARGS` | empty                      | Extra arguments, for example `--plain-http`                                                                      |
-| `KONFIDENCE_NODE_IMAGE`               | `node:<host major>-alpine` | Base image of the server                                                                                         |
+| Variable                              | Default                   | Meaning                                                                                                          |
+| ------------------------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `REGISTRY`                            | required                  | Repository prefix without scheme                                                                                 |
+| `VERSION`                             | required                  | Artifact version. Must be set for `next build` too                                                               |
+| `PLATFORMS`                           | `linux/amd64,linux/arm64` | Image platforms                                                                                                  |
+| `KONFIDENCE_REGISTRY_URL`             | `https://$REGISTRY`       | OCM repository URL. With `http://`, the chart and image references in the component are marked as plain HTTP too |
+| `HELM_PUSH_ARGS`, `DOCKER_BUILD_ARGS` | empty                     | Extra arguments, for example `--plain-http`                                                                      |
+| `KONFIDENCE_NODE_IMAGE`               | `node:24.15.0-alpine`     | Base image of the server. Pin a digest here for fully reproducible images                                        |
 
 ## Known limits
 
@@ -259,15 +261,21 @@ Environment variables for `konfidence-next publish`:
 - **The two components are not tied together.** Both carry the same version, but nothing stops a vector from combining a server with the static bundle of another build.
 - **The server and the static files switch separately.** An activation updates the route to the server and the pointer to the static files in two steps, with no order between them. For a moment a new page can ask for files that are not active yet.
 - **`public/` stays in the server image.** Static content routes are path prefixes, and files in `public/` sit at arbitrary root paths.
-- **Native modules.** The build runs on your machine, the image runs on Linux. The adapter replaces the binaries of `sharp`, which Next.js uses for image optimization. It warns about any other native module it finds.
+- **Native modules.** The build runs on your machine, the image runs on Linux, and the same staged server goes into every image platform. The adapter turns off Next.js image optimization and leaves `sharp` out of the build, so the server carries no native binary. It warns about any other native module it finds.
+- **Publish order.** `publish` pushes both components before it moves any `edge` alias, the static one first. If a push fails, `edge` stays where it was. If the second alias move fails, `edge` of the static component is ahead of the server's, which old servers tolerate because static files are immutable per build.
 - **Standalone output.** The adapter sets `output: "standalone"`. A comment in the Next.js source says this combination may be disallowed in a future version.
 
 Tested with Next.js 16.4.6, including an end-to-end local deployment with
 Kubernetes compute and S3-compatible static storage. Environment provisioning
 is outside this package.
 
-## Tests
+## Develop
+
+The package is written in strict TypeScript and compiles to `dist/` with declarations. pnpm builds it on install (`prepare`). From the repository root:
 
 ```bash
-npm test
+pnpm adapter:verify   # check, lint, fmt:check, build, test
+pnpm adapter:test     # Vitest, tests next to the code as src/**/*.test.ts
 ```
+
+The tooling matches `packages/konfidence-api-client` in the Konfidence repository: TypeScript 7 for `check` and `build`, Oxlint, Oxfmt and Vitest.
