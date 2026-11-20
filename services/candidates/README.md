@@ -4,24 +4,37 @@ HTTP service in Go. Stores candidates in Postgres.
 
 ## Endpoints
 
-| Method | Path | Body | Response |
-|---|---|---|---|
-| GET  | `/healthz` | — | `200 {"status":"ok"}` |
-| POST | `/candidates` | `{"name","email"[,"notes"]}` | `201 {"id","name","email"[,"notes"]}` / `400` |
-| GET  | `/candidates/:id` | — | `200 {…}` / `404` |
+| Method | Path                | Body                         | Response                                                                                                             |
+| ------ | ------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/healthz`          | none                         | `200 {"status":"ok"}`                                                                                                |
+| GET    | `/candidates/debug` | none                         | `200 {"service","runtime","routingKey","flags"}`                                                                     |
+| GET    | `/candidates[?q=]`  | none                         | `200 [candidate]`, ordered by name. `q` keeps candidates whose name or email contains it, ignoring case. At most 500 |
+| POST   | `/candidates`       | `{"name","email"[,"notes"]}` | `201 candidate` / `400`                                                                                              |
+| GET    | `/candidates/:id`   | none                         | `200 candidate` / `400` / `404`                                                                                      |
+| PATCH  | `/candidates/:id`   | `{"notes"}`                  | `200 candidate` / `400` / `404`. `null` or an empty string clears the notes                                          |
 
-`notes` is only accepted when the `enable-candidate-notes` release toggle is on.
+A candidate is `{"id","name","email"[,"notes"],"created_at"}`, `created_at` in RFC 3339.
+
+A PATCH body without the key `notes` answers `400` and leaves the notes alone.
+
+`notes` is only accepted when the `enable-candidate-notes` release toggle is on, on create and on update. Reads return stored notes either way.
+
+Migration `002_created_at` adds `created_at`. Rows that existed before get the time of the migration.
 
 The routing key is read from the `X-Konfidence-Routing-Key` request header.
 
+## No access control
+
+The service has no users, identities or permissions. Anyone who reaches it can list every candidate, including email addresses and notes, and change notes. That is fine for the synthetic data of this demo. Do not store real personal data in it, and do not expose it outside a demo cluster.
+
 ## Env
 
-| Name | Default |
-|---|---|
-| `LISTEN_ADDR` | `:8080` |
-| `VECTOR_CONFIG_URL` | `http://vector-data-service` |
-| `DATABASE_URL` | — |
-| `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`, `PGSSLMODE` | — |
+| Name                                                                  | Default                      |
+| --------------------------------------------------------------------- | ---------------------------- |
+| `LISTEN_ADDR`                                                         | `:8080`                      |
+| `VECTOR_CONFIG_URL`                                                   | `http://vector-data-service` |
+| `DATABASE_URL`                                                        | unset                        |
+| `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`, `PGSSLMODE` | unset                        |
 
 ## Local run
 
@@ -31,3 +44,11 @@ export DATABASE_URL="postgres://postgres:postgres@localhost:5432/example?sslmode
 export VECTOR_CONFIG_URL="http://localhost:4000"
 go run .
 ```
+
+## Tests
+
+```bash
+go test ./...
+```
+
+The handler tests use an in-memory store and need no database.
