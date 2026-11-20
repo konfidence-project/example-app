@@ -1,0 +1,22 @@
+# ${REGISTRY} and ${VERSION} are substituted at push time by the build script.
+components:
+  - name: github.com/konfidence-project/example-app/web
+    version: ${VERSION}
+    provider:
+      name: konfidence-project
+    sources: []
+    resources:
+      - name: web-kustomization
+        version: ${VERSION}
+        relation: external
+        type: kustomize
+        access:
+          type: ociArtifact
+          imageReference: ${REGISTRY}/web-kustomization:${VERSION}
+
+      - name: konfidence-manifest
+        relation: local
+        type: cloud.konfidence.artifact.manifest
+        input:
+          type: file/v1
+          path: ./konfidence-manifest.json

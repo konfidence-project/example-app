@@ -8,6 +8,8 @@
 # Node
 node_modules/
 dist/
+.svelte-kit/
+/services/web/build/
 npm-debug.log*
 
 # IDE

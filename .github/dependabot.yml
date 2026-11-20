@@ -26,12 +26,26 @@ updates:
           - minor
           - patch
 
+  - package-ecosystem: npm
+    directory: "/services/web"
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      npm-minor-patch:
+        update-types:
+          - minor
+          - patch
+
   - package-ecosystem: docker
     directories:
       - "/services/candidates"
       - "/services/candidates/migrations"
       - "/services/interviews"
       - "/services/interviews/migrations"
+      - "/services/web"
     schedule:
       interval: weekly
     commit-message:
