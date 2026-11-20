@@ -2,12 +2,12 @@ name: Publish
 
 # Publishes all example-app artifacts (images, kustomize/helm deployment
 # artifacts, OCM components) plus a release vector to the project's GHCR registry.
-# Runs on every push to main that touches published artifacts, and on demand.
+# Runs on main and the two failure fixture branches, and on demand.
 # Uses the same hack/ scripts that run locally (REGISTRY + VERSION).
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, failure/readiness, failure/migration]
     paths:
       - services/**
       - .github/vector/**
@@ -33,9 +33,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Compute version
+      - name: Select publication channel and version
         id: ver
-        run: echo "version=0.1.0-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF_NAME" == main ]]; then
+            channel=edge
+            version="0.1.0-$(git rev-parse --short HEAD)"
+          else
+            channel="${GITHUB_REF_NAME//\//-}"
+            version="0.1.0-${channel}.$(git rev-parse --short HEAD)"
+          fi
+          echo "channel=$channel" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       # The arm64 images run apk under emulation on the amd64 runner.
       - uses: docker/setup-qemu-action@v4
@@ -71,6 +81,7 @@ jobs:
 
       - name: Publish artifacts
         env:
+          COMPONENT_CHANNEL: ${{ steps.ver.outputs.channel }}
           REGISTRY: ${{ env.REGISTRY }}
           VERSION: ${{ steps.ver.outputs.version }}
         run: ./hack/local-dev/02-pipeline.sh
@@ -79,6 +90,7 @@ jobs:
       # quickstart can deploy the vector directly. kden resolves the constructor's
       # relative paths against the working directory, so run it from the vector dir.
       - name: Build vector
+        if: github.ref == 'refs/heads/main'
         working-directory: .github/vector
         env:
           REGISTRY: ${{ env.REGISTRY }}

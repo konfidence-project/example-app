@@ -16,9 +16,10 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: services/candidates/go.mod
-      - name: vet + build
+      - name: test + vet + build
         working-directory: services/candidates
         run: |
+          go test ./...
           go vet ./...
           go build ./...
 
