@@ -16,7 +16,6 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 env:
   REGISTRY: ghcr.io/${{ github.repository }}   # ghcr.io/konfidence-project/example-app
@@ -29,40 +28,48 @@ env:
 
 jobs:
   publish:
+    if: github.ref == 'refs/heads/main'
+    environment: release
+    permissions:
+      contents: read
+      packages: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - name: Compute version
         id: ver
         run: echo "version=0.1.0-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
       # The arm64 images run apk under emulation on the amd64 runner.
-      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
 
-      - uses: docker/setup-buildx-action@v4
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
 
-      - uses: docker/login-action@v4
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: azure/setup-helm@v5
+      - uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5
 
       - name: Install Kustomize
-        uses: imranismail/setup-kustomize@v3
+        uses: imranismail/setup-kustomize@53f941b41dca13ed61874bbc6b4b6e1562877530 # v3
         with:
           kustomize-version: 5.4.3
 
       - name: Install Flux CLI
-        uses: fluxcd/flux2/action@main
+        uses: fluxcd/flux2/action@1816c594f1c4e37df419638f4b69a8ab39e0ed6b # reviewed main
         with:
           version: ${{ env.FLUX_VERSION }}
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
           go-version: stable
+          cache: false
 
       - name: Install kden CLI
         run: |
