@@ -1,7 +1,11 @@
 name: Workflow security
 on:
   pull_request:
-    paths: ['.github/**']
+  merge_group:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 6 * * 1'
 permissions:
   contents: read
 jobs:
