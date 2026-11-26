@@ -26,8 +26,8 @@ export OCM_CONFIG="${OCM_CONFIG:-$ROOT/hack/local-dev/ocmconfig.yaml}"
 echo "==> Publishing example-app artifacts to $REGISTRY (version $VERSION)"
 "$ROOT/services/candidates/build-and-push.sh"
 "$ROOT/services/interviews/build-and-push.sh"
-# The Next.js frontend builds on the host and needs Node >= 22, so it is opt-in.
-# It publishes two components, web and web-static, see services/web/README.md.
+# The Next.js frontend builds on the host with Node.js and pnpm, so it is
+# opt-in. It publishes two components, web and web-static, see services/web/README.md.
 if [ "${WITH_WEB:-0}" = "1" ]; then
 	"$ROOT/services/web/build-and-push.sh"
 fi

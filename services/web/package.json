@@ -7,19 +7,14 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "check": "node ./node_modules/typescript-native/bin/tsc -p ./tsconfig.json --noEmit",
-    "lint": "oxlint && eslint .",
-    "lint:fix": "oxlint --fix && eslint . --fix",
+    "check": "next typegen && tsc --noEmit",
+    "lint": "oxlint",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
-    "test": "vitest run",
-    "verify": "pnpm check && pnpm lint && pnpm fmt:check && pnpm test",
-    "konfidence:package": "konfidence-next package",
-    "konfidence:publish": "konfidence-next publish"
+    "verify": "pnpm check && pnpm lint && pnpm fmt:check"
   },
   "dependencies": {
-    "@konfidence/next-adapter": "workspace:*",
+    "@konfidence/next-devtools": "workspace:*",
     "next": "16.4.6",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
@@ -28,19 +23,11 @@
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "eslint": "^9.39.5",
-    "eslint-config-next": "^16.4.6",
     "oxfmt": "^0.77.0",
     "oxlint": "^1.92.0",
-    "typescript": "^6.0.3",
-    "typescript-native": "npm:typescript@^7.0.2",
-    "vitest": "5.1.0"
+    "typescript": "^6.0.3"
   },
   "engines": {
     "node": ">=24.15.0"
-  },
-  "konfidence": {
-    "component": "github.com/konfidence-project/example-app/web",
-    "healthPath": "/api/healthz"
   }
 }

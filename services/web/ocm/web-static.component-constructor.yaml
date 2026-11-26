@@ -1,0 +1,38 @@
+# The browser files of the same build: everything under /_next/static. The
+# static content deployer uploads them to a bucket, and the serving setup in
+# front of the bucket answers /_next/static for the active vector.
+# kden expands ${VERSION} from the environment at push time.
+components:
+  - name: github.com/konfidence-project/example-app/web-static
+    version: ${VERSION}
+    provider:
+      name: konfidence-project
+    sources: []
+    resources:
+      - name: next-static
+        version: ${VERSION}
+        relation: local
+        type: s3.konfidence.cloud/v1alpha1
+        # The public path the files are served under.
+        labels:
+          - name: s3.konfidence.cloud/v1alpha1
+            value:
+              route: /_next/static
+        # The contents of .next/static as one archive. kden resolves the path
+        # against the working directory, which the build script sets to
+        # services/web.
+        input:
+          type: Dir/v1
+          path: ./.next/static
+          compress: true
+          reproducible: true
+          preserveDir: false
+
+      - name: konfidence-manifest
+        relation: local
+        type: cloud.konfidence.artifact.manifest
+        input:
+          type: UTF8/v1
+          yaml:
+            type: s3.konfidence.cloud
+            allowReuse: true

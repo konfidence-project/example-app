@@ -1,0 +1,5 @@
+# The image is built from the output of `next build` on the host, see the
+# Dockerfile. Nothing else goes into the build context.
+*
+!.next/standalone
+!.next/static

@@ -1,5 +1,5 @@
 # The example vector with the Next.js frontend: two backend services plus the
-# two artifacts the Next.js adapter builds from services/web.
+# two artifacts services/web/build-and-push.sh publishes from one build.
 #
 # web-static has the artifact type s3.konfidence.cloud. A landscape needs the
 # static content deployer and a DeploymentTarget for that type, otherwise the

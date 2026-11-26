@@ -18,28 +18,31 @@ To run it on a local cluster, follow the [Quickstart](https://konfidence.cloud/d
   as a Helm chart, so both Konfidence deployers (`kustomize.konfidence.cloud`
   and `helm.konfidence.cloud`) are exercised.
 
-## Next.js frontend (proof of concept)
+## Next.js frontend
 
-`services/web` is a Next.js app for the two services. It has no Dockerfile,
-chart or OCM constructor. `packages/next-adapter` generates them from one
-`next build` and publishes two artifacts: the Node server for the Helm deployer
-and the `/_next/static` bundle for the static content deployer. Both join the
-vector next to `candidates` and `interviews`
-(`.github/vector/vector-constructor.web.yaml`).
+`services/web` is a single Next.js page on top of the two services: it lists
+the scheduled interviews and has a form to schedule one. The two feature flags
+decide which form fields it shows. It is packaged like the other services,
+with a checked-in Dockerfile, Helm chart, OCM constructors and
+`build-and-push.sh`.
 
-Start with [`packages/next-adapter/README.md`](packages/next-adapter/README.md).
-The frontend is not part of the default pipeline or the quickstart yet. Publish
-it with `WITH_WEB=1 ./hack/local-dev/02-pipeline.sh`.
+One `next build` produces two OCM components with the same version:
 
-`services/web` and `packages/next-adapter` form a pnpm workspace with Node.js
-24.15.0 and pnpm 11.9.0 pinned by Hermit in `bin/`, matching the Konfidence
-repository. `pnpm install && pnpm verify` at the root checks both.
+- `web`: the Node.js server, as an image and a Helm chart (`helm.konfidence.cloud`).
+- `web-static`: the files under `/_next/static`, which a static content
+  deployer uploads to a bucket (`s3.konfidence.cloud`).
 
-For development and routing requirements, see
-[`services/web/README.md`](services/web/README.md). A landscape without a
-static content deployer can use
-`.github/vector/vector-constructor.web-compute.yaml`, with static files
-served by the Next.js server.
+The vectors that include them are `.github/vector/vector-constructor.web.yaml`
+and, for a landscape without a static content deployer,
+`.github/vector/vector-constructor.web-compute.yaml`. The frontend is not part
+of the default pipeline or the quickstart. Publish it with
+`WITH_WEB=1 ./hack/local-dev/02-pipeline.sh`.
+
+`packages/next-devtools` is a demo of what a framework integration for
+Konfidence could look like: server helpers that resolve services per vector,
+and an opt-in devtools widget. It is not a supported product. See
+[`services/web/README.md`](services/web/README.md) to develop and publish the
+frontend.
 
 ## Flow
 
@@ -76,9 +79,9 @@ example-app/
 ├── services/
 │   ├── candidates/   # Go
 │   ├── interviews/   # TypeScript / Node
-│   └── web/          # Next.js frontend (proof of concept)
+│   └── web/          # Next.js frontend
 ├── packages/
-│   └── next-adapter/ # Next.js deployment adapter for Konfidence
+│   └── next-devtools/ # demo: Next.js helpers and devtools for Konfidence
 ├── konfidence/
 │   ├── project.yaml
 │   ├── landscape.yaml

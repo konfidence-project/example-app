@@ -7,8 +7,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"runtime"
-	"strings"
 	"time"
 )
 
@@ -29,10 +27,8 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", handleHealth)
 	mux.HandleFunc("GET /candidates/debug", handleDebug)
-	mux.HandleFunc("GET /candidates", handleListCandidates(db))
 	mux.HandleFunc("POST /candidates", handleCreateCandidate(db))
 	mux.HandleFunc("GET /candidates/{id}", handleGetCandidate(db))
-	mux.HandleFunc("PATCH /candidates/{id}", handleUpdateCandidate(db))
 
 	addr := envOr("LISTEN_ADDR", ":8080")
 	srv := &http.Server{
@@ -57,7 +53,6 @@ func handleHealth(w http.ResponseWriter, _ *http.Request) {
 func handleDebug(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"service":    "candidates",
-		"runtime":    "Go " + strings.TrimPrefix(runtime.Version(), "go"),
 		"routingKey": routingKeyFromContext(r.Context()),
 		"flags":      allFlags(r.Context()),
 	})
@@ -70,44 +65,13 @@ type createCandidateRequest struct {
 }
 
 type candidateResponse struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	Notes     *string   `json:"notes,omitempty"`
-	CreatedAt time.Time `json:"created_at"`
+	ID    string  `json:"id"`
+	Name  string  `json:"name"`
+	Email string  `json:"email"`
+	Notes *string `json:"notes,omitempty"`
 }
 
-func toResponse(c Candidate) candidateResponse {
-	return candidateResponse{ID: c.ID, Name: c.Name, Email: c.Email, Notes: c.Notes, CreatedAt: c.CreatedAt.UTC()}
-}
-
-// maxQueryLength bounds the search term of GET /candidates.
-const maxQueryLength = 200
-
-// handleListCandidates returns every candidate, or with ?q= the ones whose
-// name or email contains q.
-func handleListCandidates(db store) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		query := strings.TrimSpace(r.URL.Query().Get("q"))
-		if len(query) > maxQueryLength {
-			writeError(w, http.StatusBadRequest, "q is too long")
-			return
-		}
-		candidates, err := db.ListCandidates(r.Context(), query)
-		if err != nil {
-			log.Printf("list: %v", err)
-			writeError(w, http.StatusInternalServerError, "storage error")
-			return
-		}
-		out := make([]candidateResponse, 0, len(candidates))
-		for _, c := range candidates {
-			out = append(out, toResponse(c))
-		}
-		writeJSON(w, http.StatusOK, out)
-	}
-}
-
-func handleCreateCandidate(db store) http.HandlerFunc {
+func handleCreateCandidate(db *DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req createCandidateRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -124,25 +88,27 @@ func handleCreateCandidate(db store) http.HandlerFunc {
 			return
 		}
 
-		c, err := db.InsertCandidate(r.Context(), req.Name, req.Email, req.Notes)
+		id, err := db.InsertCandidate(r.Context(), req.Name, req.Email, req.Notes)
 		if err != nil {
 			log.Printf("insert: %v", err)
 			writeError(w, http.StatusInternalServerError, "storage error")
 			return
 		}
 
-		writeJSON(w, http.StatusCreated, toResponse(c))
+		writeJSON(w, http.StatusCreated, candidateResponse{
+			ID: id, Name: req.Name, Email: req.Email, Notes: req.Notes,
+		})
 	}
 }
 
-func handleGetCandidate(db store) http.HandlerFunc {
+func handleGetCandidate(db *DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 		if id == "" {
 			writeError(w, http.StatusBadRequest, "id is required")
 			return
 		}
-		c, err := db.GetCandidate(r.Context(), id)
+		name, email, notes, err := db.GetCandidate(r.Context(), id)
 		if err != nil {
 			if errors.Is(err, errInvalidID) {
 				writeError(w, http.StatusBadRequest, "invalid candidate id")
@@ -156,53 +122,9 @@ func handleGetCandidate(db store) http.HandlerFunc {
 			writeError(w, http.StatusInternalServerError, "storage error")
 			return
 		}
-		writeJSON(w, http.StatusOK, toResponse(c))
-	}
-}
-
-// handleUpdateCandidate changes the notes of a candidate. Like on create,
-// notes are only accepted when enable-candidate-notes is on. Null, an empty
-// or a blank string clears them.
-//
-// The example app has no users, so there is no identity or permission check:
-// whoever reaches the service can change notes. Do not put real personal data
-// into it.
-func handleUpdateCandidate(db store) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		// A map tells a missing "notes" key from an explicit null, so a typo in
-		// the field name cannot clear the notes.
-		var req map[string]*string
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid json")
-			return
-		}
-		notes, ok := req["notes"]
-		if !ok {
-			writeError(w, http.StatusBadRequest, "notes is required, use null to clear them")
-			return
-		}
-		if notes != nil && strings.TrimSpace(*notes) == "" {
-			notes = nil
-		}
-		if !isEnabled(r.Context(), "enable-candidate-notes", false) {
-			writeError(w, http.StatusBadRequest, "notes field is not enabled")
-			return
-		}
-		c, err := db.UpdateNotes(r.Context(), r.PathValue("id"), notes)
-		if err != nil {
-			if errors.Is(err, errInvalidID) {
-				writeError(w, http.StatusBadRequest, "invalid candidate id")
-				return
-			}
-			if errors.Is(err, errNotFound) {
-				writeError(w, http.StatusNotFound, "candidate not found")
-				return
-			}
-			log.Printf("update: %v", err)
-			writeError(w, http.StatusInternalServerError, "storage error")
-			return
-		}
-		writeJSON(w, http.StatusOK, toResponse(c))
+		writeJSON(w, http.StatusOK, candidateResponse{
+			ID: id, Name: name, Email: email, Notes: notes,
+		})
 	}
 }
 

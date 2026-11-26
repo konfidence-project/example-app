@@ -2,24 +2,7 @@
   "name": "example-app",
   "private": true,
   "scripts": {
-    "adapter:check": "pnpm --filter @konfidence/next-adapter check",
-    "adapter:lint": "pnpm --filter @konfidence/next-adapter lint",
-    "adapter:fmt": "pnpm --filter @konfidence/next-adapter fmt",
-    "adapter:fmt:check": "pnpm --filter @konfidence/next-adapter fmt:check",
-    "adapter:test": "pnpm --filter @konfidence/next-adapter test",
-    "adapter:verify": "pnpm --filter @konfidence/next-adapter verify",
-    "web:dev": "pnpm --filter web dev",
-    "web:build": "pnpm --filter web build",
-    "web:start": "pnpm --filter web start",
-    "web:check": "pnpm --filter web check",
-    "web:lint": "pnpm --filter web lint",
-    "web:fmt": "pnpm --filter web fmt",
-    "web:fmt:check": "pnpm --filter web fmt:check",
-    "web:test": "pnpm --filter web test",
-    "web:verify": "pnpm --filter web verify",
-    "web:package": "pnpm --filter web konfidence:package",
-    "verify": "pnpm adapter:verify && pnpm web:verify",
-    "verify:artifacts": "bash hack/verify-web-artifacts.sh"
+    "verify": "pnpm -r verify"
   },
   "engines": {
     "node": ">=24.15.0"

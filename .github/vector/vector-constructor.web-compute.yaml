@@ -1,6 +1,8 @@
-# The example vector with the Next.js frontend, without the static bundle. The
-# Next.js server then answers /_next/static itself, which needs no static
-# content deployer. See vector-constructor.web.yaml for the full vector.
+# The example vector with the Next.js frontend, without web-static. The web
+# image contains the /_next/static files too, so the Next.js server answers
+# that path itself and no static content deployer is needed. The routing in
+# front must then send /_next/static to web. See vector-constructor.web.yaml
+# for the full vector.
 # ${REGISTRY} and ${VERSION} are expanded from the environment by `kden vector push`.
 components:
   - name: github.com/konfidence-project/example-app/vector-web-compute

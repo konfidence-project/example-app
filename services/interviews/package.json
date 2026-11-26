@@ -1,15 +1,14 @@
 {
   "name": "interviews",
   "version": "0.1.0",
-  "private": true,
   "description": "Konfidence example app: interviews service (Node/TypeScript)",
+  "private": true,
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc -p .",
     "start": "node dist/index.js",
-    "dev": "tsc -p . -w",
-    "test": "node --test \"test/**/*.test.ts\""
+    "dev": "tsc -p . -w"
   },
   "dependencies": {
     "@openfeature/ofrep-provider": "^0.2.5",

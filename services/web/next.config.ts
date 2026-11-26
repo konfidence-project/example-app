@@ -1,24 +1,21 @@
-import type { NextConfig } from "next";
-import { withKonfidence } from "@konfidence/next-adapter/config";
+import path from "node:path";
 
-// In production the browser calls /candidates and /interviews on its own
-// origin, and the routing in front of Konfidence sends those paths to the
-// right service of the active vector. `next dev` has no such routing, so it
-// proxies the two paths to locally running services instead.
-const devBackends = {
-  candidates: process.env.KONFIDENCE_SERVICE_CANDIDATES_URL,
-  interviews: process.env.KONFIDENCE_SERVICE_INTERVIEWS_URL,
-};
+import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  async rewrites() {
-    if (process.env.NODE_ENV !== "development") return [];
-    return Object.entries(devBackends)
-      .filter(([, url]) => url)
-      .map(([name, url]) => ({ source: `/${name}/:path*`, destination: `${url}/${name}/:path*` }));
-  },
+  // `next build` writes a self-contained server to .next/standalone. The
+  // Dockerfile copies it into the image.
+  output: "standalone",
+  // pnpm keeps node_modules at the workspace root, so tracing starts there.
+  // The server is then .next/standalone/services/web/server.js.
+  outputFileTracingRoot: path.join(import.meta.dirname, "../.."),
+  // Next.js traces sharp into every standalone build. The app optimizes no
+  // images, and the binaries are built for the host's OS, not for the image.
+  outputFileTracingExcludes: { "*": ["../../node_modules/.pnpm/{@img+sharp,sharp@}*/**"] },
+  // One id for the server and the static files of a build. Next.js puts it
+  // on the page and on every static file URL, so a browser tab notices when
+  // it talks to a server of another build and reloads.
+  deploymentId: process.env.VERSION?.replace(/[^a-zA-Z0-9_-]/g, "-"),
 };
 
-// The only Konfidence-specific line. The adapter turns the build into
-// deployable artifacts, see packages/next-adapter.
-export default withKonfidence(nextConfig);
+export default nextConfig;

@@ -1,0 +1,81 @@
+body {
+  margin: 0;
+  font:
+    15px/1.5 system-ui,
+    sans-serif;
+  color: #1a1a1a;
+}
+
+main {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+h1 {
+  font-size: 22px;
+}
+
+h2 {
+  margin-top: 32px;
+  font-size: 16px;
+}
+
+.form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.wide {
+  grid-column: 1 / -1;
+}
+
+label {
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  color: #555;
+}
+
+input,
+select,
+button {
+  box-sizing: border-box;
+  height: 34px;
+  padding: 0 8px;
+  font: inherit;
+}
+
+input,
+select {
+  width: 100%;
+  min-width: 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 6px 8px 6px 0;
+  border-bottom: 1px solid #ddd;
+  text-align: left;
+}
+
+th {
+  font-size: 13px;
+  font-weight: 500;
+  color: #555;
+}
+
+.muted {
+  color: #777;
+}
+
+.error {
+  color: #b3261e;
+}

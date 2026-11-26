@@ -1,0 +1,52 @@
+{
+  "name": "@konfidence/next-devtools",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Demo only: server helpers and devtools that show what a Next.js integration for Konfidence could look like. Not published.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "default": "./dist/server.js"
+    },
+    "./devtools": {
+      "types": "./dist/devtools/index.d.ts",
+      "default": "./dist/devtools/index.js"
+    },
+    "./devtools/route": {
+      "types": "./dist/devtools/route.d.ts",
+      "default": "./dist/devtools/route.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepare": "pnpm build",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "lint": "oxlint",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
+    "test": "vitest run",
+    "verify": "pnpm check && pnpm lint && pnpm fmt:check && pnpm build && pnpm test"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "next": "16.4.6",
+    "oxfmt": "^0.77.0",
+    "oxlint": "^1.92.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "typescript": "^6.0.3",
+    "vitest": "5.1.0"
+  },
+  "peerDependencies": {
+    "next": ">=16.2.0",
+    "react": ">=19.0.0",
+    "react-dom": ">=19.0.0"
+  },
+  "engines": {
+    "node": ">=24.15.0"
+  }
+}
