@@ -1,0 +1,33 @@
+# The Next.js server: its image and the Helm chart that deploys it.
+# kden expands ${REGISTRY} and ${VERSION} from the environment at push time.
+components:
+  - name: github.com/konfidence-project/example-app/web
+    version: ${VERSION}
+    provider:
+      name: konfidence-project
+    sources: []
+    resources:
+      - name: web-chart
+        version: ${VERSION}
+        relation: external
+        type: helmChart
+        access:
+          type: ociArtifact
+          imageReference: ${REGISTRY}/web-chart:${VERSION}
+
+      - name: web-image
+        version: ${VERSION}
+        relation: external
+        type: ociImage
+        access:
+          type: ociArtifact
+          imageReference: ${REGISTRY}/web:${VERSION}
+
+      - name: konfidence-manifest
+        relation: local
+        type: cloud.konfidence.artifact.manifest
+        input:
+          type: UTF8/v1
+          yaml:
+            type: helm.konfidence.cloud
+            allowReuse: true

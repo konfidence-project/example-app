@@ -1,0 +1,179 @@
+// Server-side helpers for code that runs inside the Next.js server.
+//
+// Konfidence routes a request to one vector and tags it with a routing key.
+// A service that calls another service forwards that key and looks the target
+// up in the vector's deployment results, so the whole request stays inside one
+// vector. These helpers do both, so application code only names the service.
+// next/headers with extension: Next.js has no exports map, so plain Node.js
+// ESM resolution needs the file name. Bundlers accept it as well.
+import { headers } from "next/headers.js";
+
+import { devtoolsEnabled, recordHop, selfName } from "./devtools/hops.js";
+import type { DeploymentResult, ServiceResultSpec, VectorData } from "./types.js";
+
+export type { DeploymentResult, VectorData } from "./types.js";
+
+export const ROUTING_KEY_HEADER = "x-konfidence-routing-key";
+
+const vectorConfigUrl = () => process.env.VECTOR_CONFIG_URL || "http://vector-data-service";
+
+/** KONFIDENCE_FEATURES, the feature flags for local development, as an object. */
+export function localFeatures(): Record<string, unknown> {
+  const raw = process.env.KONFIDENCE_FEATURES;
+  return raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+}
+const OVERRIDE_PREFIX = "KONFIDENCE_SERVICE_";
+const OVERRIDE_SUFFIX = "_URL";
+/** Deadline of one vector data lookup. */
+export const VECTOR_DATA_TIMEOUT_MS = 5000;
+/** Deadline of one serviceFetch() call, unless the caller passes its own signal. */
+export const SERVICE_TIMEOUT_MS = 10000;
+
+// Vector data is immutable per routing key, so it is cached for the process
+// lifetime. A failed or timed-out lookup is evicted, so the next request
+// tries again.
+const vectorDataCache = new Map<string, Promise<VectorData>>();
+
+/** The routing key of the current request, or '' outside Konfidence. */
+export async function routingKey(): Promise<string> {
+  return (await headers()).get(ROUTING_KEY_HEADER) ?? "";
+}
+
+/** Features, authored configuration and deployment results of the vector serving this request. */
+export async function vectorData(): Promise<VectorData | null> {
+  const key = await routingKey();
+  if (!key) return null;
+  let pending = vectorDataCache.get(key);
+  if (!pending) {
+    pending = loadVectorData(key);
+    vectorDataCache.set(key, pending);
+    pending.catch(() => vectorDataCache.delete(key));
+  }
+  return pending;
+}
+
+async function loadVectorData(key: string): Promise<VectorData> {
+  // The vector data service speaks OFREP. Evaluating the routing key itself
+  // as the flag key returns the whole vector document.
+  const url = `${vectorConfigUrl()}/ofrep/v1/evaluate/flags/${encodeURIComponent(key)}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ context: { targetingKey: key } }),
+    cache: "no-store",
+    signal: AbortSignal.timeout(VECTOR_DATA_TIMEOUT_MS),
+  });
+  if (!res.ok) throw new Error(`the vector data service responded ${res.status}`);
+  const body = (await res.json()) as { value?: VectorData } | null;
+  return body?.value ?? {};
+}
+
+/** Feature flags of the current vector. Falls back to KONFIDENCE_FEATURES (JSON) for local development. */
+export async function features(): Promise<Record<string, unknown>> {
+  const data = await vectorData();
+  if (data) return data.features ?? {};
+  return localFeatures();
+}
+
+const overrideVariable = (name: string) =>
+  `${OVERRIDE_PREFIX}${name.toUpperCase().replace(/[^A-Z0-9]/g, "_")}${OVERRIDE_SUFFIX}`;
+
+/**
+ * Base URL of a service in the current vector, by its deployment-result name.
+ * For local development, KONFIDENCE_SERVICE_<NAME>_URL overrides the lookup.
+ */
+export async function serviceUrl(name: string): Promise<string> {
+  const override = process.env[overrideVariable(name)];
+  if (override) return override.replace(/\/+$/, "");
+
+  const data = await vectorData();
+  if (!data) {
+    throw new Error(
+      `cannot resolve service "${name}": the request carries no ${ROUTING_KEY_HEADER} header`,
+    );
+  }
+  const match = deploymentResults(data).find((r) => r.name === name);
+  if (!match) throw new Error(`the current vector exposes no deployment result named "${name}"`);
+  const { Namespace, K8sName, ServicePorts } = match.spec as Partial<ServiceResultSpec>;
+  const port = ServicePorts?.[0]?.port;
+  if (!Namespace || !K8sName || port === undefined) {
+    throw new Error(`deployment result "${name}" exposes no port`);
+  }
+  return `http://${K8sName}.${Namespace}.svc.cluster.local:${port}`;
+}
+
+function deploymentResults(data: VectorData | null): DeploymentResult[] {
+  return Object.values(data?.deploymentResults ?? {}).flatMap((list) => list ?? []);
+}
+
+/**
+ * Names of the HTTP services this server can reach: the Kubernetes service
+ * results of the current vector, plus local KONFIDENCE_SERVICE_<NAME>_URL
+ * overrides. Excludes this server itself.
+ */
+export async function serviceNames(): Promise<string[]> {
+  const names = new Set<string>();
+  for (const variable of Object.keys(process.env)) {
+    if (variable.startsWith(OVERRIDE_PREFIX) && variable.endsWith(OVERRIDE_SUFFIX)) {
+      const name = variable.slice(OVERRIDE_PREFIX.length, -OVERRIDE_SUFFIX.length);
+      if (name) names.add(name.toLowerCase().replace(/_/g, "-"));
+    }
+  }
+  const data = await vectorData().catch(() => null);
+  for (const result of deploymentResults(data)) {
+    const ports = (result.spec as Partial<ServiceResultSpec> | undefined)?.ServicePorts;
+    if (ports?.length) names.add(result.name);
+  }
+  names.delete(selfName());
+  return [...names].sort();
+}
+
+/** fetch() against a service of the current vector. Forwards the routing key and never caches. */
+export async function serviceFetch(
+  name: string,
+  path: string,
+  init: RequestInit = {},
+): Promise<Response> {
+  if (!devtoolsEnabled()) return plainServiceFetch(name, path, init);
+
+  // Devtools are on: the same call, timed and kept in the hop buffer.
+  const key = await routingKey();
+  const method = (init.method ?? "GET").toUpperCase();
+  const started = performance.now();
+  let host: string | null = null;
+  try {
+    host = new URL(await serviceUrl(name)).host;
+    const res = await plainServiceFetch(name, path, init);
+    recordHop(
+      { to: name, method, path, host, status: res.status, routingKey: key },
+      performance.now() - started,
+      res,
+      await serviceNames().catch(() => []),
+    );
+    return res;
+  } catch (err) {
+    recordHop(
+      {
+        to: name,
+        method,
+        path,
+        host,
+        status: null,
+        routingKey: key,
+        error: err instanceof Error ? err.message : "unknown error",
+      },
+      performance.now() - started,
+    );
+    throw err;
+  }
+}
+
+async function plainServiceFetch(name: string, path: string, init: RequestInit) {
+  const base = await serviceUrl(name);
+  const key = await routingKey();
+  const requestHeaders = new Headers(init.headers);
+  if (key) requestHeaders.set(ROUTING_KEY_HEADER, key);
+  const timeout = AbortSignal.timeout(SERVICE_TIMEOUT_MS);
+  const signal = init.signal ? AbortSignal.any([init.signal, timeout]) : timeout;
+  return fetch(`${base}${path}`, { cache: "no-store", ...init, headers: requestHeaders, signal });
+}

@@ -1,0 +1,36 @@
+# The example vector with the Next.js frontend: two backend services plus the
+# two artifacts services/web/build-and-push.sh publishes from one build.
+#
+# web-static has the artifact type s3.konfidence.cloud. A landscape needs the
+# static content deployer and a DeploymentTarget for that type, otherwise the
+# vector never becomes ready. Use vector-constructor.web-compute.yaml where
+# that deployer is not installed.
+#
+# web and web-static come from one build and must have the same version.
+# ${REGISTRY} and ${VERSION} are expanded from the environment by `kden vector push`.
+components:
+  - name: github.com/konfidence-project/example-app/vector-web
+    version: ${VERSION}
+    provider:
+      name: konfidence
+    componentReferences:
+      - name: candidates
+        componentName: github.com/konfidence-project/example-app/candidates
+        version: ${VERSION}
+      - name: interviews
+        componentName: github.com/konfidence-project/example-app/interviews
+        version: ${VERSION}
+      - name: web
+        componentName: github.com/konfidence-project/example-app/web
+        version: ${VERSION}
+      - name: web-static
+        componentName: github.com/konfidence-project/example-app/web-static
+        version: ${VERSION}
+    resources:
+      - name: cloud-konfidence-vector-config
+        type: json
+        version: 1.0.0
+        relation: local
+        input:
+          type: file/v1
+          path: ./vector-config.json

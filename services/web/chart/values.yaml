@@ -1,0 +1,12 @@
+# ${REGISTRY} is substituted at package time by the build script.
+# image.tag is intentionally empty: it defaults to .Chart.AppVersion, which the
+# build script sets from VERSION via `helm package --app-version`.
+image:
+  repository: ${REGISTRY}/web
+  tag: ""
+  pullPolicy: IfNotPresent
+
+vectorConfigUrl: http://vector-data-service
+# Optional ConfigMap in the landscape namespace for settings that differ per
+# landscape, for example KONFIDENCE_DEVTOOLS=1. The pod starts without it.
+configMapName: web-config

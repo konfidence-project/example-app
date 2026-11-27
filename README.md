@@ -18,6 +18,32 @@ To run it on a local cluster, follow the [Quickstart](https://konfidence.cloud/d
   as a Helm chart, so both Konfidence deployers (`kustomize.konfidence.cloud`
   and `helm.konfidence.cloud`) are exercised.
 
+## Next.js frontend
+
+`services/web` is a single Next.js page on top of the two services: it lists
+the scheduled interviews and has a form to schedule one. The two feature flags
+decide which form fields it shows. It is packaged like the other services,
+with a checked-in Dockerfile, Helm chart, OCM constructors and
+`build-and-push.sh`.
+
+One `next build` produces two OCM components with the same version:
+
+- `web`: the Node.js server, as an image and a Helm chart (`helm.konfidence.cloud`).
+- `web-static`: the files under `/_next/static`, which a static content
+  deployer uploads to a bucket (`s3.konfidence.cloud`).
+
+The vectors that include them are `.github/vector/vector-constructor.web.yaml`
+and, for a landscape without a static content deployer,
+`.github/vector/vector-constructor.web-compute.yaml`. The frontend is not part
+of the default pipeline or the quickstart. Publish it with
+`WITH_WEB=1 ./hack/local-dev/02-pipeline.sh`.
+
+`packages/next-devtools` is a demo of what a framework integration for
+Konfidence could look like: server helpers that resolve services per vector,
+and an opt-in devtools widget. It is not a supported product. See
+[`services/web/README.md`](services/web/README.md) to develop and publish the
+frontend.
+
 ## Flow
 
 ```
@@ -52,7 +78,10 @@ database instead.
 example-app/
 ├── services/
 │   ├── candidates/   # Go
-│   └── interviews/   # TypeScript / Node
+│   ├── interviews/   # TypeScript / Node
+│   └── web/          # Next.js frontend
+├── packages/
+│   └── next-devtools/ # demo: Next.js helpers and devtools for Konfidence
 ├── konfidence/
 │   ├── project.yaml
 │   ├── landscape.yaml
@@ -74,11 +103,11 @@ registry you can push to and the cluster can pull from (Artifactory, GHCR, ...).
 
 Export three variables before running the scripts:
 
-| Variable            | What it is                                                                 |
-| ------------------- | -------------------------------------------------------------------------- |
+| Variable            | What it is                                                                                                                          |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | `REGISTRY`          | `host/org/repo` prefix the artifacts are published under. **No** `https://`, no trailing `/`. The path must be one you can push to. |
-| `REGISTRY_USERNAME` | User for that registry. Step 01 prompts if unset.                          |
-| `REGISTRY_PASSWORD` | Password or access token for that user. Step 01 prompts (silently) if unset. |
+| `REGISTRY_USERNAME` | User for that registry. Step 01 prompts if unset.                                                                                   |
+| `REGISTRY_PASSWORD` | Password or access token for that user. Step 01 prompts (silently) if unset.                                                        |
 
 ```bash
 export REGISTRY=my-registry.example.com/my-org/example-app
@@ -98,19 +127,19 @@ optional and defaults to a unique `0.1.0-<shortsha>` (see [Publishing](#publishi
 
 Generic `REGISTRY` examples:
 
-| Registry              | `REGISTRY` value                                  |
-| --------------------- | ------------------------------------------------- |
-| GitHub Container Reg. | `ghcr.io/my-org/example-app`                      |
-| Docker Hub            | `docker.io/my-user/example-app`                   |
-| Artifactory           | `my-company.jfrog.io/my-repo/example-app`         |
-| Google Artifact Reg.  | `europe-docker.pkg.dev/my-project/my-repo/example-app` |
+| Registry              | `REGISTRY` value                                           |
+| --------------------- | ---------------------------------------------------------- |
+| GitHub Container Reg. | `ghcr.io/my-org/example-app`                               |
+| Docker Hub            | `docker.io/my-user/example-app`                            |
+| Artifactory           | `my-company.jfrog.io/my-repo/example-app`                  |
+| Google Artifact Reg.  | `europe-docker.pkg.dev/my-project/my-repo/example-app`     |
 | AWS ECR               | `123456789.dkr.ecr.eu-central-1.amazonaws.com/example-app` |
 
 > While the required Konfidence fixes are unreleased, run
 > `./hack/local-dev/01_temp_from_local.sh` instead of `01-setup-kind-cluster.sh` — it
 > builds Konfidence from sibling checkouts (`../konfidence`, `../kubernetes-landscape-orchestrator`).
 
-Step 01 sets up the *static* resources — a Project (its own `kden-p-*`
+Step 01 sets up the _static_ resources — a Project (its own `kden-p-*`
 namespace), a Landscape (a managed `kden-l-*` namespace) and the app's Postgres —
 and creates the registry pull credentials. The cluster pulls artifacts and images
 using a single
@@ -120,7 +149,7 @@ namespaces that need it (`konfidence-system`, the project ns, the managed ns) an
 maps the registry host to it via a `flux-deployer-configuration` ConfigMap.
 
 Step 02 publishes the artifacts (see [Publishing](#publishing)). Step 03 applies
-the *runtime* resources — a VectorTemplate, an empty Stage, and a
+the _runtime_ resources — a VectorTemplate, an empty Stage, and a
 VectorPromotionConfig that promotes the assembled vector into the Stage.
 Konfidence reconciles the rest; the scripts don't deploy the workloads directly.
 
@@ -132,9 +161,9 @@ Konfidence reconciles the rest; the scripts don't deploy the workloads directly.
 Step 02 is the publish pipeline — the same thing CI runs. It is driven by two
 variables and nothing else:
 
-| Variable   | Default | Meaning |
-| ---------- | ------- | ------- |
-| `REGISTRY` | — (required) | OCI repo prefix to publish under, e.g. `ghcr.io/my-org/example-app`. |
+| Variable   | Default            | Meaning                                                                                                                                  |
+| ---------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `REGISTRY` | — (required)       | OCI repo prefix to publish under, e.g. `ghcr.io/my-org/example-app`.                                                                     |
 | `VERSION`  | `0.1.0-<shortsha>` | Artifact version for images, chart, kustomization and OCM components. A unique value keeps re-runs idempotent (`kden` has no overwrite). |
 
 `hack/local-dev/02-pipeline.sh` is a thin orchestrator that runs each service's
@@ -168,15 +197,15 @@ component versions, so a quickstart can deploy the vector directly.
 
 ## Concepts, at a glance
 
-| Concept | Where |
-|---|---|
-| OCM component | `services/*/ocm/component-constructor.yaml` |
-| Deployer manifest | inline in `services/*/ocm/component-constructor.yaml` (kustomize for candidates, helm for interviews) |
-| Migration task | `services/*/ocm/tasks/*/task-manifest.json` |
-| Vector assembly | `hack/local-dev/manifests/vectortemplate.yaml` |
-| Vector-scoped config | `hack/local-dev/manifests/vectortemplate.yaml` → `spec.vectorConfig.features` |
-| OpenFeature client | `services/candidates/openfeature.go`, `services/interviews/src/openfeature.ts` |
-| `X-Konfidence-Routing-Key` forwarding | `services/candidates/routingkey.go`, `services/interviews/src/{routingkey,candidatesClient}.ts` |
+| Concept                               | Where                                                                                                 |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| OCM component                         | `services/*/ocm/component-constructor.yaml`                                                           |
+| Deployer manifest                     | inline in `services/*/ocm/component-constructor.yaml` (kustomize for candidates, helm for interviews) |
+| Migration task                        | `services/*/ocm/tasks/*/task-manifest.json`                                                           |
+| Vector assembly                       | `hack/local-dev/manifests/vectortemplate.yaml`                                                        |
+| Vector-scoped config                  | `hack/local-dev/manifests/vectortemplate.yaml` → `spec.vectorConfig.features`                         |
+| OpenFeature client                    | `services/candidates/openfeature.go`, `services/interviews/src/openfeature.ts`                        |
+| `X-Konfidence-Routing-Key` forwarding | `services/candidates/routingkey.go`, `services/interviews/src/{routingkey,candidatesClient}.ts`       |
 
 ## Support, Feedback, Contributing
 

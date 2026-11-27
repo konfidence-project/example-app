@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app.kubernetes.io/name: web
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  annotations:
+    konfidence.cloud/deployment-result: web
+    konfidence.cloud/exposed-port-name: http
+spec:
+  selector:
+    app.kubernetes.io/name: web
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

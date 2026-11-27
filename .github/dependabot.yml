@@ -13,6 +13,21 @@ updates:
           - minor
           - patch
 
+  # The pnpm workspace: services/web and packages/next-devtools share the
+  # root pnpm-lock.yaml, so one entry at the root covers both.
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      npm-minor-patch:
+        update-types:
+          - minor
+          - patch
+
   - package-ecosystem: npm
     directory: "/services/interviews"
     schedule:
@@ -32,6 +47,7 @@ updates:
       - "/services/candidates/migrations"
       - "/services/interviews"
       - "/services/interviews/migrations"
+      - "/services/web"
     schedule:
       interval: weekly
     commit-message:

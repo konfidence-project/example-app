@@ -36,3 +36,8 @@ kubeconfig
 # OCM transfer artifacts
 /ocm-transfer/
 **/ocm-transfer/
+
+# Next.js
+.next/
+next-env.d.ts
+*.tsbuildinfo
