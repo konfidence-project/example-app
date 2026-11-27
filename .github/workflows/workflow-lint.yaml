@@ -1,0 +1,13 @@
+name: Workflow security
+on:
+  pull_request:
+  merge_group:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 6 * * 1'
+permissions:
+  contents: read
+jobs:
+  lint:
+    uses: konfidence-project/.github/.github/workflows/workflow-lint.yaml@ef25064d200c2da0789c100878a4ee29a147518d # v5.0.0
